@@ -18,6 +18,7 @@ class NeuralNetwork():
         self.shape = self.get_shape()
         print('self.shape', self.shape)
         self.batch_size = batch_size
+        self.init_learning_rate = learning_rate
         self.learning_rate = learning_rate
         self.epoches = epoches
         self.plot = plot #plot the learning curve
@@ -52,20 +53,6 @@ class NeuralNetwork():
         self.bias.append(self.draw_normal(self.nh1))
         self.bias.append(self.draw_normal(self.nh2))
         self.bias.append(self.draw_normal(self.no))
-        '''
-        self.weight.append(self.draw_normal((self.ni, self.nh)))
-        print('weight:',self.weight[0].shape)
-        for l in range(self.hlayers-1):
-            self.weight.append( self.draw_normal( (self.nh, self.nh) ) )
-            print('weight_',l+1,':',self.weight[l+1].shape)
-        self.weight.append( self.draw_normal( (self.nh, self.no) ) ) 
-        print('weight_out:',self.weight[-1].shape)
-
-        for l in range(self.hlayers):
-            self.bias.append(self.draw_normal(self.nh)) #((1, self.nh)))
-            print('bias_', l, self.bias[l].shape)
-        self.bias.append(self.draw_normal(self.no))#((1, self.no)))
-        '''
         print('==================================')
 
     def forward_propagate(self, X):
@@ -82,7 +69,10 @@ class NeuralNetwork():
             #print('doted z:',z.shape)
             z = np.add(z, self.bias[l])
             #print('added z:',z.shape)
-            a = self.sigmoid(z) #(10,)
+            if l == self.hlayers:
+                a = self.softmax(z)
+            else:
+                a = self.sigmoid(z) #(10,)
             A.append(a)
         return A    #return the ouput value of each node in each layer 
 
@@ -104,13 +94,11 @@ class NeuralNetwork():
         miss_classify = []
 
         for epoche in range(1, epoches+1):
-            if(epoche % 5 == 0):
-                self.learning_rate *= 0.7 #step decay
+            self.learning_rate = self.init_learning_rate / (1+epoche) #1/t decay
             print('Epoche_',epoche,':  ')
             self.shuffle_data() #shuffle before each epoche
             #mini-batch
-            for batch in range(0, last_batch, batch_size):    #0,100,200...,49400
-                #print('Batch_',batch,':  ')
+            for batch in range(0, last_batch, batch_size):
                 start_pattern = batch
                 end_pattern = start_pattern + batch_size
                 Gradient = self.get_shape_of_weight()
@@ -118,11 +106,10 @@ class NeuralNetwork():
                 for p in range(start_pattern, end_pattern):
                     #forward propagation
                     A = self.forward_propagate(self.Xs[p])
-                    # TODO: softmax => sum of A[L] = 1
                     error = self.cost_function(self.Labels[p], A[-1])
-                    #backpropagation
                     delta = self.get_shape_of_node()    # delta[l][i] = (10,) #array
-                    delta[self.layers-1] = np.negative(np.multiply(self.Labels[p], np.subtract(1, A[self.layers-1])))
+                    delta[self.layers-1] = np.subtract(A[self.layers-1], self.Labels[p]) #softmax derivative = y-t
+                    #delta[self.layers-1] = np.negative(np.multiply(self.Labels[p], np.subtract(1, A[self.layers-1]))) #-t(1-y)
                     for l in range(self.layers-2, 0,-1):
                         # TODO: Vectorization this loop
                         for i in range(self.shape[l]):
@@ -169,7 +156,10 @@ class NeuralNetwork():
             #print('dot z', z.shape)
             z = np.add(z, self.bias[l])
             #print('added z', z.shape)
-            a = self.sigmoid(z)
+            if l == self.hlayers:
+                a = self.softmax(z)
+            else:
+                a = self.sigmoid(z)
         #predict = np.argmax(a)
         #print('probability vector: ',a)
         #print('Forward, predict: ', predict)
@@ -189,11 +179,6 @@ class NeuralNetwork():
         pairs = list(zip(self.Xs, self.Labels))
         random.shuffle(pairs)
         self.Xs, self.Labels = zip(*pairs)
-        #pair = np.concatenate((self.Xs, self.Labels), axis=1)
-        #np.random.shuffle(pair)
-        #split = np.hsplit(pair, np.array([(-1)*self.Labels[0].shape[0], train_label.shape[0]])) #-10, 45000
-        #self.Xs = split[0]
-        #self.Labels = split[1]
 
     def sigmoid(self, z):
         return np.reciprocal( np.add(1, np.exp( np.negative(z))))
@@ -203,10 +188,7 @@ class NeuralNetwork():
         return np.multiply(s, np.subtract(1,s))
 
     def softmax(self, z):
-        return 'not yet'
-
-    def d_softmax(self, z):
-        return 'not yet'
+        return np.exp(z) / np.sum(np.exp(z))
 
     def draw_normal(self, size):
         mu, sigma = 0, 0.01
@@ -214,12 +196,10 @@ class NeuralNetwork():
 
     def get_shape(self):
         shape = []
-        shape.append(self.ni)    #input nodes
-        #for l in range(0,self.hlayers):
-            #shape.append(self.nh) #hidden layer nodes
+        shape.append(self.ni)  
         shape.append(self.nh1)
         shape.append(self.nh2)
-        shape.append(self.no)    #output nodes
+        shape.append(self.no) 
         return shape
 
     def get_shape_of_weight(self):
@@ -232,7 +212,6 @@ class NeuralNetwork():
         N = []
         for l in range(self.layers):
             N.append(np.zeros(self.shape[l]))
-            #N.append(np.zeros((self.shape[l], 1)))
         return N
 
     def get_shape_of_bias(self):
@@ -240,7 +219,7 @@ class NeuralNetwork():
         for l in range(1, self.layers):
             b.append(np.zeros(self.shape[l])) #? ,1
         return b
-        
+
     def show_weight_and_bias(self, filename = 'none'):
         if filename == 'none':
             print('Show weight and bias on screen!')
@@ -285,13 +264,14 @@ if __name__ == "__main__":
     #test_label = np.array_split(test_label, 15000) #15000 x (1,10) nd_array  
 
     #training
-    node1, node2, batch, rate, l, e = 400, 200, 1, 0.15, 2, 50
+    node1, node2, batch, rate, l, e = 128, 32, 4500, 0.1, 2, 50
     filename = 'n1_'+str(node1)+'n2_'+str(node2)+'-rate_'+str(rate)+'-l_'+str(l)+'-e_'+str(e)+'-b_'+str(batch)+'.txt'
     
     nn = NeuralNetwork(train_x, train_label, h_nodes1=node1, h_nodes2=node2, batch_size=batch, learning_rate=rate, n_hidden_layers=l, epoches=e, plot=False, outfile=filename)
+    print('before train, cost function: ',nn.cost_function( train_label[0], nn.predict(train_x[0])))
     nn.train()
     nn.show_weight_and_bias(filename)
-    #print('cost function: ',nn.cost_function( train_label[0], nn.predict(train_x[0])))
+    print('after train, cost function: ',nn.cost_function( train_label[0], nn.predict(train_x[0])))
 
 
     #testing
