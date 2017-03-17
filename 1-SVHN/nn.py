@@ -3,10 +3,9 @@ __author__ = 'ChiWeiHsiao'
 import scipy.io as sio
 import numpy as np
 import random
-import matplotlib.pyplot as plt
 
 class NeuralNetwork():
-    def __init__(self, train_x, train_label, h_nodes1=500, h_nodes2=250, batch_size=100, learning_rate=0.005, n_hidden_layers=2, epoches=1000, plot=True, outfile='try.txt'):
+    def __init__(self, train_x, train_label, h_nodes1, h_nodes2, batch_size=20, learning_rate=0.05, learn_decay='False', n_hidden_layers=2, epoches=100,, outfile='try.txt'):
         self.Xs, self.Labels =  train_x, train_label # Xs: a list of 45000 * np_arrays with shape=(1,784)
 
         self.nh1 = h_nodes1
@@ -19,9 +18,9 @@ class NeuralNetwork():
         print('self.shape', self.shape)
         self.batch_size = batch_size
         self.init_learning_rate = learning_rate
+        self.learn_decay = learn_decay
         self.learning_rate = learning_rate
         self.epoches = epoches
-        self.plot = plot #plot the learning curve
 
         self.weight = [] 
         self.bias = []
@@ -33,9 +32,11 @@ class NeuralNetwork():
         print('number of hidden layers: '+str(n_hidden_layers))
         print('hidden nodes 1: '+str(h_nodes1))
         print('hidden nodes 2: '+str(h_nodes2))
-        print('initial learning rate (step decay): '+str(learning_rate))
+        print('initial learning rate: '+str(learning_rate))
+        print('learning rate decay?: '+str(learn_decay))
         print('batch size: '+str(batch_size))
         print('epoches: '+str(epoches))
+        print('==================================')
 
         with open(self.filename, 'w') as fp:
             fp.write('number of hidden layers: '+str(n_hidden_layers)+'\n')
@@ -50,11 +51,9 @@ class NeuralNetwork():
         self.weight.append(self.draw_normal((self.ni, self.nh1)))
         self.weight.append( self.draw_normal( (self.nh1, self.nh2) ) )
         self.weight.append( self.draw_normal( (self.nh2, self.no) ) )
-
         self.bias.append(self.draw_normal(self.nh1))
         self.bias.append(self.draw_normal(self.nh2))
         self.bias.append(self.draw_normal(self.no))
-        print('==================================')
 
     def forward_propagate(self, X):
         a = X #input vector (1, 748)
@@ -69,7 +68,7 @@ class NeuralNetwork():
             else:
                 a = self.sigmoid(z) #(10,)
             A.append(a)
-        return A    #return the ouput value of each node in each layer 
+        return A #return the ouput value of each node in each layer 
 
     def cost_function(self, Target, Output):
         #of a single example
@@ -81,13 +80,14 @@ class NeuralNetwork():
         m = len(self.Xs)
         batch_size = self.batch_size
         epoches = self.epoches
-        last_batch = m - batch_size + 1 #49500-100+1
+        last_batch = m - batch_size + 1
         #Statistics
         total_error = [] #cost function
         miss_classify = []
 
         for epoche in range(0, epoches):
-            self.learning_rate = self.init_learning_rate / (1+epoche*0.2) #1/t decay
+            if self.learn_decay:
+                self.learning_rate = self.init_learning_rate / (1+epoche*0.2) #1/t decay
             print('Epoche_',epoche,':  ')
             self.shuffle_data() #shuffle before each epoche
             #mini-batch
@@ -102,10 +102,8 @@ class NeuralNetwork():
                     #error = self.cost_function(self.Labels[p], A[-1]) / batch_size
                     delta = self.get_shape_of_node()    # delta[l][i] = (10,) #array
                     delta[self.layers-1] = A[self.layers-1] - self.Labels[p] #softmax derivative = y-t
-                    #delta[self.layers-1] = np.negative(np.multiply(self.Labels[p], np.subtract(1, A[self.layers-1]))) #sigmoid derivative: -t(1-y)
                     for l in range(self.layers-2, 0,-1):
                         # TODO: Vectorization this loop
-                        
                         for i in range(self.shape[l]):
                             weighted_sum = np.dot(self.weight[l][i], delta[l+1]) #sum over next layer, j
                             delta[l][i] = weighted_sum * A[l][i] * (1-A[l][i]) #f'(z) #delta[l][i], scalar
@@ -122,15 +120,6 @@ class NeuralNetwork():
             print('miss in this epoche: ', miss_this_epoche)
             with open(filename, 'a') as fp:
                 fp.write('miss in this epoche: '+str(miss_this_epoche)+'\n')
-
-        #stop training when error < 10 %
-        #print('Missclassification rate on Training Data = ', miss_classify/m )
-
-        if(self.plot):
-            print('plot 2 learning curve: error, miss classification rate')
-            # x-axis is epoches
-            #plt.
-        return 'finish all epoches!'
 
     def train_regularization(self):
         labda = 0.01 
@@ -210,31 +199,6 @@ class NeuralNetwork():
             b.append(np.zeros(self.shape[l])) #? ,1
         return b
 
-    def show_weight_and_bias(self, filename = 'none'):
-        if filename == 'none':
-            print('Show weight and bias on screen!')
-            for l in range(self.layers-1):
-                print('------layer_',l,'------------')
-                print('Weight[',l,']:')
-                print(self.weight[l])
-                print('Bias[',l,']:')
-                print(self.bias[l])
-        else:
-            with open(filename, 'ab') as fp:
-                for l in range(self.layers-1):
-                    #fp.write('------layer_'+str(l)+'------------')
-                    #fp.write('Weight['+str(l)+']:')
-                    msg = '------layer_'+str(l)+'------------\n'
-                    fp.write(msg.encode('utf-8'))
-                    msg = 'Weight['+str(l)+']: \n'
-                    fp.write(msg.encode('utf-8'))
-                    for w in self.weight:
-                        np.savetxt(fp, w, fmt='%-4.5f')
-                    msg = 'Bias['+str(l)+']: \n'
-                    fp.write(msg.encode('utf-8'))
-                    for b in self.bias:
-                        np.savetxt(fp, b, fmt='%-4.5f')
-
 
 if __name__ == "__main__":
     #read from file
@@ -247,16 +211,13 @@ if __name__ == "__main__":
     test_label = mat_contents['test_label']
 
     #training
-    filename = '1.txt'
-    node1, node2, batch, rate, l, e = 200, 100, 20, 0.3, 2, 50
-    #filename = 'n1_'+str(node1)+'n2_'+str(node2)+'-rate_'+str(rate)+'-l_'+str(l)+'-e_'+str(e)+'-b_'+str(batch)+'.txt'
+    filename = 'r1.txt'
+    node1, node2, batch, rate, l, e, learn_decay = 200, 100, 20, 0.3, 2, 50, True
     
-    nn = NeuralNetwork(train_x, train_label, h_nodes1=node1, h_nodes2=node2, batch_size=batch, learning_rate=rate, n_hidden_layers=l, epoches=e, plot=False, outfile=filename)
+    nn = NeuralNetwork(train_x, train_label, h_nodes1=node1, h_nodes2=node2, batch_size=batch, learning_rate=rate, learn_decay=learn_decay,  n_hidden_layers=l, epoches=e, plot=False, outfile=filename)
     print('before train, cost function: ',nn.cost_function( train_label[0], nn.predict(train_x[0])))
     nn.train()
-    #nn.show_weight_and_bias(filename)
     print('after train, cost function: ',nn.cost_function( train_label[0], nn.predict(train_x[0])))
-
 
     #testing
     miss_rate_train = nn.miss_classify_rate(train_x, train_label)
