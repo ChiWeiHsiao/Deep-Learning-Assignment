@@ -6,7 +6,7 @@ import random
 import matplotlib.pyplot as plt
 
 class NeuralNetwork():
-    def __init__(self, train_x, train_label, h_nodes1==10, h_nodes2=10 batch_size=100, learning_rate=0.005, n_hidden_layers=2, epoches=1000, plot=True, outfile='try.txt'):
+    def __init__(self, train_x, train_label, h_nodes1=500, h_nodes2=250, batch_size=100, learning_rate=0.005, n_hidden_layers=2, epoches=1000, plot=True, outfile='try.txt'):
         self.Xs, self.Labels =  train_x, train_label # Xs: a list of 45000 * np_arrays with shape=(1,784)
 
         self.nh1 = h_nodes1
@@ -28,6 +28,13 @@ class NeuralNetwork():
         print('NN Initialize...finish!')
         
         self.filename = outfile
+        print('number of hidden layers: '+str(n_hidden_layers))
+        print('hidden nodes 1: '+str(h_nodes1))
+        print('hidden nodes 2: '+str(h_nodes2))
+        print('initial learning rate (step decay): '+str(learning_rate))
+        print('batch size: '+str(batch_size))
+        print('epoches: '+str(epoches))
+
         with open(self.filename, 'w') as fp:
             fp.write('number of hidden layers: '+str(n_hidden_layers)+'\n')
             fp.write('hidden nodes 1: '+str(h_nodes1)+'\n')
@@ -98,7 +105,7 @@ class NeuralNetwork():
 
         for epoche in range(1, epoches+1):
             if(epoche % 5 == 0):
-                self.learning_rate /= 2 #step decay
+                self.learning_rate *= 0.7 #step decay
             print('Epoche_',epoche,':  ')
             self.shuffle_data() #shuffle before each epoche
             #mini-batch
@@ -116,23 +123,23 @@ class NeuralNetwork():
                     #backpropagation
                     delta = self.get_shape_of_node()    # delta[l][i] = (10,) #array
                     delta[self.layers-1] = np.negative(np.multiply(self.Labels[p], np.subtract(1, A[self.layers-1])))
-                    #print('--------comput delta[-1]--------')
                     for l in range(self.layers-2, 0,-1):
                         # TODO: Vectorization this loop
                         for i in range(self.shape[l]):
                             weighted_sum = np.dot(self.weight[l][i], delta[l+1]) #sum over next layer, j
                             delta[l][i] = weighted_sum * A[l][i] * (1-A[l][i]) #f'(z) #delta[l][i], scalar
                     for l in range(0, self.layers-1):
-                        Gradient[l] = np.add(Gradient[l], np.dot(A[l][:, np.newaxis], delta[l+1][np.newaxis])) #(15x10)   (15,1)#[:, np.newaxis] (10,)
-                        Gradient_bias[l] = np.add(Gradient_bias[l], delta[l+1]) #bias node =1, so a_j(l)=1
-                        #print('Gradient_bias[l]',Gradient_bias[l])
-                        #print('Gradient[l]',Gradient[l])
+                        Gradient[l] = np.add(Gradient[l], np.dot(A[l][:, np.newaxis], delta[l+1][np.newaxis])) 
+                        Gradient_bias[l] = np.add(Gradient_bias[l], delta[l+1]) 
                 #update weight and bias once a batch
                 for l in range(self.layers-1):
                     D = np.divide(Gradient[l], batch_size)
                     D_bias = np.divide(Gradient_bias[l], batch_size)
-                    self.weight[l] = np.subtract(self.weight[l], np.multiply(self.learning_rate,D)) #if bias is weight[l][0], => self.weight[l][1:] = np.add(self.weight[l][1:], D)
-                    self.bias[l] =  np.subtract(self.bias[l], np.multiply(self.learning_rate, D_bias))# TODO: Gradient lost to compute for bias QQ, merge bias into weight? Gradient_bias?
+                    #print('D_',l,': ', D)
+                    #print('D_bias',l,': ', D_bias)
+                    self.weight[l] = np.subtract(self.weight[l], np.multiply(self.learning_rate,D)) 
+                    self.bias[l] =  np.subtract(self.bias[l], np.multiply(self.learning_rate, D_bias))
+            print('miss in this epoche: ', self.miss_classify_rate(train_x, train_label))
 
         #stop training when error < 10 %
 
@@ -278,7 +285,7 @@ if __name__ == "__main__":
     #test_label = np.array_split(test_label, 15000) #15000 x (1,10) nd_array  
 
     #training
-    node1, node2, batch, rate, l, e = 500, 250, 5, 0.15, 2, 50
+    node1, node2, batch, rate, l, e = 400, 200, 1, 0.15, 2, 50
     filename = 'n1_'+str(node1)+'n2_'+str(node2)+'-rate_'+str(rate)+'-l_'+str(l)+'-e_'+str(e)+'-b_'+str(batch)+'.txt'
     
     nn = NeuralNetwork(train_x, train_label, h_nodes1=node1, h_nodes2=node2, batch_size=batch, learning_rate=rate, n_hidden_layers=l, epoches=e, plot=False, outfile=filename)
