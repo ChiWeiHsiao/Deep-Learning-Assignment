@@ -6,10 +6,11 @@ import random
 import matplotlib.pyplot as plt
 
 class NeuralNetwork():
-    def __init__(self, train_x, train_label, n_hidden_nodes=10, batch_size=100, learning_rate=0.005, n_hidden_layers=2, epoches=1000, plot=True, outfile='try.txt'):
+    def __init__(self, train_x, train_label, h_nodes1==10, h_nodes2=10 batch_size=100, learning_rate=0.005, n_hidden_layers=2, epoches=1000, plot=True, outfile='try.txt'):
         self.Xs, self.Labels =  train_x, train_label # Xs: a list of 45000 * np_arrays with shape=(1,784)
 
-        self.nh = n_hidden_nodes
+        self.nh1 = h_nodes1
+        self.nh2 = h_nodes2
         self.ni = self.Xs[0].shape[0] #number of input nodes, 784
         self.no = self.Labels[0].shape[0] #number of output nodes, 10
         self.hlayers = n_hidden_layers
@@ -29,13 +30,22 @@ class NeuralNetwork():
         self.filename = outfile
         with open(self.filename, 'w') as fp:
             fp.write('number of hidden layers: '+str(n_hidden_layers)+'\n')
-            fp.write('number of hidden nodes: '+str(n_hidden_nodes)+'\n')
+            fp.write('hidden nodes 1: '+str(h_nodes1)+'\n')
+            fp.write('hidden nodes 2: '+str(h_nodes2)+'\n')
             fp.write('initial learning rate (step decay): '+str(learning_rate)+'\n')
             fp.write('batch size: '+str(batch_size)+'\n')
             fp.write('epoches: '+str(epoches)+'\n')
 
     def initialize_weight(self):
         # W(l) = (s_l, s_l+1)
+        self.weight.append(self.draw_normal((self.ni, self.nh1)))
+        self.weight.append( self.draw_normal( (self.nh1, self.nh2) ) )
+        self.weight.append( self.draw_normal( (self.nh2, self.no) ) )
+
+        self.bias.append(self.draw_normal(self.nh1))
+        self.bias.append(self.draw_normal(self.nh2))
+        self.bias.append(self.draw_normal(self.no))
+        '''
         self.weight.append(self.draw_normal((self.ni, self.nh)))
         print('weight:',self.weight[0].shape)
         for l in range(self.hlayers-1):
@@ -48,6 +58,7 @@ class NeuralNetwork():
             self.bias.append(self.draw_normal(self.nh)) #((1, self.nh)))
             print('bias_', l, self.bias[l].shape)
         self.bias.append(self.draw_normal(self.no))#((1, self.no)))
+        '''
         print('==================================')
 
     def forward_propagate(self, X):
@@ -197,8 +208,10 @@ class NeuralNetwork():
     def get_shape(self):
         shape = []
         shape.append(self.ni)    #input nodes
-        for l in range(0,self.hlayers):
-            shape.append(self.nh) #hidden layer nodes
+        #for l in range(0,self.hlayers):
+            #shape.append(self.nh) #hidden layer nodes
+        shape.append(self.nh1)
+        shape.append(self.nh2)
         shape.append(self.no)    #output nodes
         return shape
 
@@ -265,10 +278,10 @@ if __name__ == "__main__":
     #test_label = np.array_split(test_label, 15000) #15000 x (1,10) nd_array  
 
     #training
-    node, batch, rate, l, e = 100, 100, 0.1, 1, 20
-    filename = 'node_'+str(node)+'-rate_'+str(rate)+'-l_'+str(l)+'-e_'+str(e)+'-b_'+str(batch)+'.txt'
+    node1, node2, batch, rate, l, e = 500, 250, 5, 0.15, 2, 50
+    filename = 'n1_'+str(node1)+'n2_'+str(node2)+'-rate_'+str(rate)+'-l_'+str(l)+'-e_'+str(e)+'-b_'+str(batch)+'.txt'
     
-    nn = NeuralNetwork(train_x, train_label, n_hidden_nodes=node, batch_size=batch, learning_rate=rate, n_hidden_layers=l, epoches=e, plot=False, outfile=filename)
+    nn = NeuralNetwork(train_x, train_label, h_nodes1=node1, h_nodes2=node2, batch_size=batch, learning_rate=rate, n_hidden_layers=l, epoches=e, plot=False, outfile=filename)
     nn.train()
     nn.show_weight_and_bias(filename)
     #print('cost function: ',nn.cost_function( train_label[0], nn.predict(train_x[0])))
