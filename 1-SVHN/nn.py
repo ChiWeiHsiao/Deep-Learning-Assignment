@@ -5,9 +5,9 @@ import numpy as np
 import random
 
 class NeuralNetwork():
-    def __init__(self, train_x, train_label, h_nodes1, h_nodes2, batch_size=20, learning_rate=0.05, learn_decay='False', n_hidden_layers=2, epoches=100,, outfile='try.txt'):
+    def __init__(self, train_x, train_label, h_nodes1, h_nodes2, batch_size=20, learning_rate=0.05, learn_decay='False', n_hidden_layers=2, epoches=100, outfile='try.txt'):
         self.Xs, self.Labels =  train_x, train_label # Xs: a list of 45000 * np_arrays with shape=(1,784)
-
+        # Parameters
         self.nh1 = h_nodes1
         self.nh2 = h_nodes2
         self.ni = self.Xs[0].shape[0] #number of input nodes, 784
@@ -21,12 +21,18 @@ class NeuralNetwork():
         self.learn_decay = learn_decay
         self.learning_rate = learning_rate
         self.epoches = epoches
-
+        # Random initialized weight
         self.weight = [] 
         self.bias = []
         self.initialize_weight()
         print('NN Initialize...finish!')
-        
+        # Statistics
+        self.train_miss_statistics = []
+        self.train_cost_statistics = []
+        self.test_miss_statistics = []
+        self.test_cost_statistics = []
+
+        # Print Information
         self.filename = outfile
         print(outfile)
         print('number of hidden layers: '+str(n_hidden_layers))
@@ -73,7 +79,7 @@ class NeuralNetwork():
     def cost_function(self, Target, Output):
         #of a single example
         #Output: probability vector
-        return np.negative(np.multiply(Target, np.log(Output)))
+        return -(Target*np.log(Output))
 
     def train(self):
         #Parameters
@@ -89,6 +95,8 @@ class NeuralNetwork():
             if self.learn_decay:
                 self.learning_rate = self.init_learning_rate / (1+epoche*0.2) #1/t decay
             print('Epoche_',epoche,':  ')
+            with open(filename, 'a') as fp:
+                fp.write('Epoche_'+str(epoche)+':\n')
             self.shuffle_data() #shuffle before each epoche
             #mini-batch
             for batch in range(0, last_batch, batch_size):
@@ -99,7 +107,7 @@ class NeuralNetwork():
                 for p in range(start_pattern, end_pattern):
                     #forward propagation
                     A = self.forward_propagate(self.Xs[p])
-                    #error = self.cost_function(self.Labels[p], A[-1]) / batch_size
+                    error = self.cost_function(self.Labels[p], A[-1]) / batch_size
                     delta = self.get_shape_of_node()    # delta[l][i] = (10,) #array
                     delta[self.layers-1] = A[self.layers-1] - self.Labels[p] #softmax derivative = y-t
                     for l in range(self.layers-2, 0,-1):
@@ -110,25 +118,29 @@ class NeuralNetwork():
                     for l in range(0, self.layers-1):
                         Gradient[l] = Gradient[l] + np.dot(A[l][:, np.newaxis], delta[l+1][np.newaxis])
                         Gradient_bias[l] = Gradient_bias[l] + delta[l+1] 
-                #update weight and bias once a batch
+                # update weight and bias once a batch
                 for l in range(self.layers-1):
                     D = Gradient[l] / batch_size
                     D_bias = Gradient_bias[l]/ batch_size
                     self.weight[l] = self.weight[l] - self.learning_rate * D
                     self.bias[l] =  self.bias[l] - self.learning_rate * D_bias
-            miss_this_epoche = self.miss_classify_rate(train_x, train_label)
-            print('miss in this epoche: ', miss_this_epoche)
+            # Learning Curve
+            train_error_this_epoche = self.error_rate(train_x, train_label)
+            test_error_this_epoche = self.error_rate(test_x, test_label)
+            print('train miss in this epoche: ', train_error_this_epoche['miss'])
+            print('train cost in this epoche: ', train_error_this_epoche['cost'])
+            print('test miss in this epoche: ', test_error_this_epoche['miss'])
+            print('test cost in this epoche: ', test_error_this_epoche['cost'])
+            self.train_miss_statistics.append(train_error_this_epoche['miss'])
+            self.train_cost_statistics.append(train_error_this_epoche['cost'])
+            self.test_miss_statistics.append(test_error_this_epoche['miss'])
+            self.test_cost_statistics.append(test_error_this_epoche['cost'])
             with open(filename, 'a') as fp:
-                fp.write('miss in this epoche: '+str(miss_this_epoche)+'\n')
+                fp.write('train miss in this epoche: '+str(train_error_this_epoche['miss'])+'\n')
+                fp.write('train cost in this epoche: '+str(train_error_this_epoche['cost'])+'\n')
+                fp.write('test miss in this epoche: '+str(test_error_this_epoche['miss'])+'\n')
+                fp.write('test cost in this epoche: '+str(test_error_this_epoche['cost'])+'\n')
 
-    def train_regularization(self):
-        labda = 0.01 
-        #weight decay
-
-    def train_ADAM(self):
-        #Adaptive Moment Estimation
-        1
-    
     def predict(self, X):
         #forward_propagation
         a = X   #(1,748)
@@ -144,14 +156,15 @@ class NeuralNetwork():
         #print('Forward, predict: ', predict)
         return a
 
-    def miss_classify_rate(self, inputs, targets):
-        error = 0
+    def error_rate(self, inputs, targets):
         m = len(inputs)
+        miss, cost = 0, 0
         for i in range(m):
-            predict = np.argmax(self.predict(inputs[i]))
-            error = error + (predict!=np.argmax(targets[i]))
-            #print('miss classifications: ', error)
-        return error / m
+            output = self.predict(inputs[i])
+            miss = miss + ( np.argmax(output) != np.argmax(targets[i]) )
+            cost += np.sum(self.cost_function(targets[i], output))
+        rate = {'miss': miss/m, 'cost': cost/m}
+        return  rate
 
     def shuffle_data(self):
         # shuffle before each epoche
@@ -203,27 +216,58 @@ class NeuralNetwork():
 if __name__ == "__main__":
     #read from file
     mat_contents = sio.loadmat('SVHN.mat', struct_as_record=False)
-
     train_x = mat_contents['train_x']   #(45000, 784)
     train_label = mat_contents['train_label']   #(45000, 10)
-
     test_x = mat_contents['test_x'] #(15000, 784)
     test_label = mat_contents['test_label']
 
     #training
-    filename = 'r1.txt'
-    node1, node2, batch, rate, l, e, learn_decay = 200, 100, 20, 0.3, 2, 50, True
-    
-    nn = NeuralNetwork(train_x, train_label, h_nodes1=node1, h_nodes2=node2, batch_size=batch, learning_rate=rate, learn_decay=learn_decay,  n_hidden_layers=l, epoches=e, plot=False, outfile=filename)
-    print('before train, cost function: ',nn.cost_function( train_label[0], nn.predict(train_x[0])))
+    filename = '6.txt'
+    node1, node2, batch, rate, l, e, learn_decay = 200, 100, 20, 0.3, 2, 60, False
+    nn = NeuralNetwork(train_x, train_label, h_nodes1=node1, h_nodes2=node2, batch_size=batch, learning_rate=rate, learn_decay=learn_decay,  n_hidden_layers=l, epoches=e, outfile=filename)
     nn.train()
-    print('after train, cost function: ',nn.cost_function( train_label[0], nn.predict(train_x[0])))
+
+    # print out Training learning curve
+    print('===============Curve===================')
+    print('Train Learning Curve on train data:')
+    print('miss = ',nn.train_miss_statistics)
+    print('avg cost = ', nn.train_cost_statistics)
+    with open(filename, 'a') as fp:
+        fp.write('=============Curve=====================\n')
+        fp.write('Train Learning Curve on train data:\n')
+        fp.write('miss = '+str(nn.train_miss_statistics)+'\n')
+        fp.write('avg cost = '+str(nn.train_cost_statistics)+'\n\n')
+
+    # print out Testing learning curve
+    print('Test Learning Curve on train data:')
+    print('miss = ',nn.test_miss_statistics)
+    print('avg cost = ', nn.test_cost_statistics)
+    with open(filename, 'a') as fp:
+        fp.write('Test Learning Curve on train data:\n')
+        fp.write('miss = '+str(nn.test_miss_statistics)+'\n')
+        fp.write('avg cost = '+str(nn.test_cost_statistics)+'\n\n')
 
     #testing
-    miss_rate_train = nn.miss_classify_rate(train_x, train_label)
-    miss_rate_test = nn.miss_classify_rate(test_x, test_label)
+    train_error = nn.error_rate(train_x, train_label)
+    train_cost = train_error['cost']
+    train_miss = train_error['miss']
+
+    test_error = nn.error_rate(test_x, test_label)
+    test_cost = test_error['cost']
+    test_miss = test_error['miss']
+
     with open(filename, 'a') as fp:
-        fp.write('Missclassification rate on Training Data = '+ str(miss_rate_train)+'\n')
-        fp.write('Missclassification rate on Testing Data = '+str(miss_rate_test)+'\n')
-    print('Missclassification rate on Training Data = ', miss_rate_train)
-    print('Missclassification rate on Testing Data = ', miss_rate_test)
+        fp.write('==================================\n')
+        fp.write('Training Data:\n')
+        fp.write('Miss rate = '+ str(train_miss)+'\n')
+        fp.write('average cost = '+ str(train_cost)+'\n\n')
+        fp.write('Testing Data:\n')
+        fp.write('miss rate = '+str(test_miss)+'\n')
+        fp.write('average cost = '+ str(test_cost)+'\n\n')
+    print('==================================')
+    print('Training Data:')
+    print('Miss rate = ',train_miss)
+    print('average cost = ',train_cost)
+    print('Testing Data:')
+    print('miss rate = ',test_miss)
+    print('average cost = ',test_cost)
