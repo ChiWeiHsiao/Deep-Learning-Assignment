@@ -91,6 +91,8 @@ class NeuralNetwork():
         total_error = [] #cost function
         miss_classify = []
 
+        m = self.get_shape_of_weight()
+        v = self.get_shape_of_weight()
         for epoche in range(0, epoches):
             if self.learn_decay:
                 self.learning_rate = self.init_learning_rate / (1+epoche*0.2) #1/t decay
@@ -98,14 +100,14 @@ class NeuralNetwork():
             with open(filename, 'a') as fp:
                 fp.write('Epoche_'+str(epoche)+':\n')
             self.shuffle_data() #shuffle before each epoche
-            #mini-batch
+            # mini-batch
             for batch in range(0, last_batch, batch_size):
                 start_pattern = batch
                 end_pattern = start_pattern + batch_size
                 Gradient = self.get_shape_of_weight()
                 Gradient_bias = self.get_shape_of_bias()
                 for p in range(start_pattern, end_pattern):
-                    #forward propagation
+                    # forward propagation
                     A = self.forward_propagate(self.Xs[p])
                     error = self.cost_function(self.Labels[p], A[-1]) / batch_size
                     delta = self.get_shape_of_node()    # delta[l][i] = (10,) #array
@@ -122,8 +124,15 @@ class NeuralNetwork():
                 for l in range(self.layers-1):
                     D = Gradient[l] / batch_size
                     D_bias = Gradient_bias[l]/ batch_size
-                    self.weight[l] = self.weight[l] - self.learning_rate * D
-                    self.bias[l] =  self.bias[l] - self.learning_rate * D_bias
+                    # Adaptive Moment Estimation
+                    #beta1, beta2, eps, self.learning_rate = 0.9, 0.999, 0.00000001, 0.001
+                    beta1, beta2, eps = 0.9, 0.999, 0.00000001
+                    m[l] = beta1*m[l] + (1-beta1)*D
+                    v[l] = beta2*v[l] + (1-beta2)*(D**2)
+                    #x += - learning_rate * m / (np.sqrt(v) + eps)
+                    #self.weight[l] -= self.learning_rate * D
+                    self.weight[l] -= self.learning_rate * m[l] / (np.sqrt(v[l]) + eps)
+                    self.bias[l] -= self.learning_rate * D_bias
             # Learning Curve
             train_error_this_epoche = self.error_rate(train_x, train_label)
             test_error_this_epoche = self.error_rate(test_x, test_label)
@@ -222,8 +231,8 @@ if __name__ == "__main__":
     test_label = mat_contents['test_label']
 
     #training
-    filename = '6.txt'
-    node1, node2, batch, rate, l, e, learn_decay = 200, 100, 20, 0.3, 2, 60, False
+    filename = 'adam-100epochs.txt'
+    node1, node2, batch, rate, l, e, learn_decay = 200, 100, 20, 0.01, 2, 100, False
     nn = NeuralNetwork(train_x, train_label, h_nodes1=node1, h_nodes2=node2, batch_size=batch, learning_rate=rate, learn_decay=learn_decay,  n_hidden_layers=l, epoches=e, outfile=filename)
     nn.train()
 
