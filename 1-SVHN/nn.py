@@ -232,7 +232,7 @@ if __name__ == "__main__":
 
     #training
     filename = 'adam-100epochs.txt'
-    node1, node2, batch, rate, l, e, learn_decay = 200, 100, 20, 0.01, 2, 100, False
+    node1, node2, batch, rate, l, e, learn_decay = 200, 100, 20, 0.001, 2, 100, False
     nn = NeuralNetwork(train_x, train_label, h_nodes1=node1, h_nodes2=node2, batch_size=batch, learning_rate=rate, learn_decay=learn_decay,  n_hidden_layers=l, epoches=e, outfile=filename)
     nn.train()
 
