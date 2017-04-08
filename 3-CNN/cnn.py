@@ -6,8 +6,7 @@ from tflearn.data_utils import shuffle, to_categorical
 from tflearn.layers.core import input_data, dropout, fully_connected
 from tflearn.layers.conv import conv_2d, max_pool_2d
 from tflearn.layers.estimator import regression
-from tflearn.data_preprocessing import ImagePreprocessing
-from tflearn.data_augmentation import ImageAugmentation
+from tflearn.layers.normalization import local_response_normalization
 
 
 def unpickle(filename):
@@ -45,28 +44,36 @@ def get_cifar_10():
   return label_name, X, Y, X_test, Y_test 
   
 
-def cnn():
-  print('cnn')
-
-
 if __name__ == '__main__':
   # Load data
   label_name, X, Y, X_test, Y_test = get_cifar_10()
   # Build CNN
-  network = input_data(shape=[None, 32, 32, 3], name='InputData')
-  network = conv_2d(network, 32, 3, activation='relu')
-  network = max_pool_2d(network, 2)
-  network = conv_2d(network, 64, 3, activation='relu')
-  network = conv_2d(network, 64, 3, activation='relu')
-  network = max_pool_2d(network, 2)
-  network = fully_connected(network, 512, activation='relu')
-  network = dropout(network, 0.5)
-  network = fully_connected(network, 10, activation='softmax')
-  network = regression(network, optimizer='adam',
+    # ref: http://terrence.logdown.com/posts/1296387
+  input_data = input_data(shape=[None, 32, 32, 3])
+  conv1 = conv_2d(input_data, nb_filter=64, filter_size=3, activation='relu', regularizer='L2')
+  pool1 = max_pool_2d(conv1, kernel_size=2, strides=[1,2,2,1])
+  lrn1 = local_response_normalization(pool1)
+
+  conv2 = conv_2d(lrn1, 128, 3, activation='relu', regularizer='L2')
+  pool2 = max_pool_2d(conv2, 2, strides=[1,2,2,1])
+  lrn2 = local_response_normalization(pool2)
+
+  fully1 = fully_connected(lrn2, 512, activation='relu')
+  #fully1 = dropout(fully1, 0.8)
+  fully2 = fully_connected(fully1, 1024, activation='relu')
+  fully2 = dropout(fully2, 0.8)
+  fully3 = fully_connected(fully2, 10, activation='softmax')
+  network = regression(fully3, optimizer='adam',
 											 loss='categorical_crossentropy',
-											 learning_rate=0.001)
+											 learning_rate=0.001, name='Target')
 
 	# Train using classifier
-  model = tflearn.DNN(network, tensorboard_verbose=0)
+  model = tflearn.DNN(network, tensorboard_verbose=0, tensorboard_dir='../log/',)
   model.fit(X, Y, n_epoch=50, shuffle=True, validation_set=(X_test, Y_test),
-						show_metric=True, batch_size=96, run_id='cifar10_cnn')
+						snapshot_step=100, show_metric=True, batch_size=128, run_id='cnn_1')
+
+  model.save('model_1.tflearn')
+
+  # Get weights
+  print("conv1 layer weights[0]:")
+  print(model.get_weights(conv1.W)[0])
