@@ -54,19 +54,26 @@ if __name__ == '__main__':
   img_aug.add_random_flip_leftright()
   img_aug.add_random_rotation(max_angle=25.)
 
+  params = {
+    'stride': 1,
+    'filter': 3,
+    'epoch': 25,
+    'id': 'cnn_3'
+  }
+
   # Build CNN
     # ref: https://github.com/kumikokashii/cnn-techniques/blob/master/model_03_lrn.ipynb
   input_data = input_data(shape=[None, 32, 32, 3], data_augmentation=img_aug)
-  conv1 = conv_2d(input_data, nb_filter=64, filter_size=3, activation='relu', regularizer='L2')
-  pool1 = max_pool_2d(conv1, kernel_size=3, strides=2)
+  conv1 = conv_2d(input_data, 64, params['filter'], activation='relu', regularizer='L2')
+  pool1 = max_pool_2d(conv1, params['filter'], params['stride'])
   lrn1 = local_response_normalization(pool1)
 
-  conv2 = conv_2d(lrn1, 64, 3, activation='relu', regularizer='L2')
-  pool2 = max_pool_2d(conv2, 3, strides=2)
+  conv2 = conv_2d(lrn1, 64, params['filter'], activation='relu', regularizer='L2')
+  pool2 = max_pool_2d(conv2, params['filter'], params['stride'])
   lrn2 = local_response_normalization(pool2)
 
-  conv3 = conv_2d(lrn2, 128, 3, activation='relu', regularizer='L2')
-  pool3 = max_pool_2d(conv3, 3, strides=2)
+  conv3 = conv_2d(lrn2, 128, params['filter'], activation='relu', regularizer='L2')
+  pool3 = max_pool_2d(conv3, params['filter'], params['stride'])
   lrn3 = local_response_normalization(pool3)
 
   flat = flatten(lrn3) 
@@ -82,11 +89,11 @@ if __name__ == '__main__':
 
 	# Train using classifier
   model = tflearn.DNN(network, tensorboard_verbose=0, tensorboard_dir='../log/')
-  model.fit(X, Y, n_epoch=50, shuffle=True, validation_set=(X_test, Y_test),
-						show_metric=True, batch_size=128, run_id='cnn_2')
+  model.fit(X, Y, n_epoch=params['epoch'], shuffle=True, validation_set=(X_test, Y_test),
+						show_metric=True, batch_size=128, run_id=params['id'])
 
-  model.save('model_2.tflearn')
+  model.save(params['id']+'.tflearn')
 
   # Get weights
-  print("conv1 layer weights[0]:")
-  print(model.get_weights(conv1.W)[0])
+  #print("conv1 layer weights[0]:")
+  #print(model.get_weights(conv1.W)[0])
