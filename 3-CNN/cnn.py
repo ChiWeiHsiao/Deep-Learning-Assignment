@@ -55,25 +55,25 @@ if __name__ == '__main__':
   img_aug.add_random_rotation(max_angle=25.)
 
   params = {
-    'stride': 1,
-    'filter': 3,
-    'epoch': 25,
+    'conv_filter': 5,
+    'pool_width': 5,
+    'pool_stride': 2,
+    'epoch': 50,
     'id': 'cnn_3'
   }
 
   # Build CNN
-    # ref: https://github.com/kumikokashii/cnn-techniques/blob/master/model_03_lrn.ipynb
   input_data = input_data(shape=[None, 32, 32, 3], data_augmentation=img_aug)
-  conv1 = conv_2d(input_data, 64, params['filter'], activation='relu', regularizer='L2')
-  pool1 = max_pool_2d(conv1, params['filter'], params['stride'])
+  conv1 = conv_2d(input_data, 64, params['conv_filter'], activation='relu', regularizer='L2')
+  pool1 = max_pool_2d(conv1, params['pool_width'], params['pool_stride'])
   lrn1 = local_response_normalization(pool1)
 
-  conv2 = conv_2d(lrn1, 64, params['filter'], activation='relu', regularizer='L2')
-  pool2 = max_pool_2d(conv2, params['filter'], params['stride'])
+  conv2 = conv_2d(lrn1, 64, params['conv_filter'], activation='relu', regularizer='L2')
+  pool2 = max_pool_2d(conv2, params['pool_width'], params['pool_stride'])
   lrn2 = local_response_normalization(pool2)
 
-  conv3 = conv_2d(lrn2, 128, params['filter'], activation='relu', regularizer='L2')
-  pool3 = max_pool_2d(conv3, params['filter'], params['stride'])
+  conv3 = conv_2d(lrn2, 128, params['conv_filter'], activation='relu', regularizer='L2')
+  pool3 = max_pool_2d(conv3, params['pool_width'], params['pool_stride'])
   lrn3 = local_response_normalization(pool3)
 
   flat = flatten(lrn3) 

@@ -10,8 +10,9 @@ train_accuracy = []
 test_accuracy = []
 step = 1
 steps_per_epoch = 391
+for e in tf.train.summary_iterator('../log/cnn_3/events.out.tfevents.1491932310.Aspire'):
 #for e in tf.train.summary_iterator('../log/cnn_2/events.out.tfevents.1491821101.Aspire'):
-for e in tf.train.summary_iterator('../log/cnn_1/events.out.tfevents.1491744412.Aspire'):
+#for e in tf.train.summary_iterator('../log/cnn_1/events.out.tfevents.1491744412.Aspire'):
   for v in e.summary.value:
     if v.tag == 'Accuracy':
       step +=  1
@@ -27,7 +28,7 @@ print('test_accuracy:', len(test_accuracy))
 
 
 # Output it as json file
-filename = 'accuracy_cnn_2'
+filename = 'accuracy_cnn_3'
 filename += '.json'
 with open(filename, 'w') as f:
   data = {
