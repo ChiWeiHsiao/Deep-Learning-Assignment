@@ -56,10 +56,10 @@ if __name__ == '__main__':
 
   params = {
     'conv_filter': 5,
-    'pool_width': 5,
+    'pool_width': 3,
     'pool_stride': 2,
     'epoch': 50,
-    'id': 'cnn_3'
+    'id': 'cnn_4'
   }
 
   # Build CNN
