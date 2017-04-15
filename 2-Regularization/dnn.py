@@ -7,16 +7,16 @@ import json
 mnist = input_data.read_data_sets("/tmp//mnist", one_hot=True)
 
 # Regularization option {None, 'L1', 'L2', 'dropout'}
-run_id = '5'
-regularizer = 'L2'
+regularizer = 'dropout'
+run_id = '4-200'
 experiment_id = str(regularizer) + run_id
 regular_scale = 0.1 #if use 'L1' or 'L2'
-dropout_p = 0.75 #if use dropout
+dropout_p = 0.3 #if use dropout
 logfile = 'statistics/'+experiment_id
 logfile += '.json'
 
 # Training Parameters
-n_epochs = 100
+n_epochs = 200
 batch_size = 128
 learning_rate = 0.001
 
@@ -118,6 +118,16 @@ with tf.Session() as sess:
   log['bias_3'] = sess.run(b_3).flatten().tolist()
 print("Training Finished!")
 
+params = {
+  'regularizer': regularizer,
+  'experiment_id': experiment_id,
+  'regular_scale': regular_scale,  #if use 'L1' or 'L2'
+  'dropout_p': dropout_p, #if use dropout
+  'n_epochs': n_epochs,
+  'batch_size': batch_size,
+  'learning_rate': learning_rate
+}
+log.update(params)
 
 # Print weights and accuracy log to json file
 with open(logfile, 'w') as f:
