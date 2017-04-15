@@ -4,3 +4,4 @@ log/
 plot/*.json
 2-Regularization/statistics/
 3-CNN/statistics/
+__pycache__/

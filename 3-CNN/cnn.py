@@ -45,8 +45,8 @@ first_label = np.reshape(train_Y[0], (1, NUM_CLASS)) # add one dim, to make firs
 def add_conv(in_tensor, out_size):
   biases_initializer = tf.constant_initializer(0.)
   weights_initializer = tf.uniform_unit_scaling_initializer(seed=None, dtype=tf.float32)
+
   conv = tf.contrib.layers.conv2d(in_tensor, out_size, kernel_size=params['conv_filter'], stride=params['conv_stride'], activation_fn=None, biases_initializer=biases_initializer, weights_initializer=weights_initializer, padding='SAME')
-  #conv = tf.contrib.layers.conv2d(in_tensor, out_size, kernel_size=params['conv_filter'], stride=params['conv_stride'], activation_fn=None, padding='SAME')
   return tf.nn.relu(conv)
 
 def add_maxpool(in_tensor):
@@ -67,36 +67,24 @@ def add_fully(in_tensor, n_out):
 # Graph input
 x = tf.placeholder('float', [None, IMG_HEIGHT, IMG_WIDTH, IMG_CHANNEL])
 y_truth = tf.placeholder('float', [None, NUM_CLASS])
-# Conv 1
+# Conv 1: [-1, 32, 32, 1] -> [-1, 32, 32, 64]
 input_layer = tf.reshape(x, shape=[-1, 32, 32, 3])
-# Input Tensor Shape: [batch_size, 32, 32, 1]
-# Output Tensor Shape: [batch_size, 32, 32, 64]
 conv1 = add_conv(input_layer, 64)
-# Input Tensor Shape: [batch_size, 32, 32, 64]
-# Output Tensor Shape: [batch_size, 16, 16, 64] (if stride=2)
+# Pool 1: [-1, 32, 32, 64] -> [-1, 16, 16, 64] (if stride=2)
 pool1 = add_maxpool(conv1)
 lrn1 = add_lrn(pool1)
-# Conv 2
-# Input Tensor Shape: [batch_size, 16, 16, 64]
-# Output Tensor Shape: [batch_size, 16, 16, 64]
+# Conv 2: [-1, 16, 16, 64] -> [-1, 16, 16, 64]
 conv2 = add_conv(lrn1, 64) #64 or 128
-# Input Tensor Shape: [batch_size, 16, 16, 64]
-# Output Tensor Shape: [batch_size, 8, 8, 64]
+# Pool 2: [-1, 16, 16, 64] -> [-1, 8, 8, 64]
 pool2 = add_maxpool(conv2)
 lrn2 = add_lrn(pool2)
-# Fully Connected 1
-# Input Tensor Shape: [batch_size, 8, 8, 64]
-# Output Tensor Shape: [batch_size, 8*8*64 = 4096]
-flatten = tf.contrib.layers.flatten(lrn2)#tf.reshape(lrn2, [-1, weights['f1'].get_shape().as_list()[0]])
-# Input Tensor Shape: [batch_size, 8*8*64 = 8192]
-# Output Tensor Shape: [batch_size, 384]
+# Flatten: [-1, 8, 8, 64] -> [-1, 8*8*64 = 4096]
+flatten = tf.contrib.layers.flatten(lrn2)
+# Fully Connected 1:  [-1, 8*8*64 = 8192] -> [-1, 384]
 fc1 = add_fully(flatten, 384)
 fc1_drop = tf.nn.dropout(fc1, params['dropout'])
-# Fully Connected 2
-fc2 = add_fully(fc1_drop, 192)
-fc2_drop = tf.nn.dropout(fc2, params['dropout'])
-# Output, (fully connected)
-out = add_fully(fc2_drop, 10)	
+# Output, (fully connected): [-1, 384] -> [-1, 10]
+out = add_fully(fc1_drop, 10)	
 
 # Create model
 y_predict = out
