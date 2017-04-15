@@ -7,14 +7,16 @@ import json
 mnist = input_data.read_data_sets("/tmp//mnist", one_hot=True)
 
 # Regularization option {None, 'L1', 'L2', 'dropout'}
+run_id = '5'
 regularizer = 'L2'
-regular_scale = 0.01 #if use 'L1' or 'L2'
+experiment_id = str(regularizer) + run_id
+regular_scale = 0.1 #if use 'L1' or 'L2'
 dropout_p = 0.75 #if use dropout
-logfile = 'L2_1'
+logfile = 'statistics/'+experiment_id
 logfile += '.json'
 
 # Training Parameters
-n_epochs = 50 
+n_epochs = 100
 batch_size = 128
 learning_rate = 0.001
 
@@ -26,6 +28,7 @@ n_hidden_2 = 128 #256
 
 # Log
 log = {
+  'experiment_id': experiment_id,
   'train_accuracy_per_epoch': [],
   'test_accuracy_per_epoch': [],
   'weight_1': [],
@@ -39,15 +42,15 @@ log = {
 def add_regularization(cost, weights, option='L2', scale=0.0):
   regularization = 0
   if option=='L2':
-    for w in weights:
+     for w in weights:
       regularization += tf.contrib.layers.l2_regularizer(scale)(w)
   elif option=='L1':
-    for w in weights:
+     for w in weights:
       regularization += tf.contrib.layers.l1_regularizer(scale)(w)
   return tf.reduce_mean(cost + scale*regularization) 
 
 
-''' Build Computation Gragh for DNN model '''
+''' Build Computation Gragh  DNN model '''
 # Graph input
 x = tf.placeholder("float", [None, n_input])
 y_truth = tf.placeholder("float", [None, n_out])
@@ -92,7 +95,7 @@ with tf.Session() as sess:
   test_acc = sess.run(accuracy, feed_dict={x: mnist.test.images, y_truth: mnist.test.labels}).tolist()
   log['train_accuracy_per_epoch'].append(train_acc)
   log['test_accuracy_per_epoch'].append(test_acc)
-  # Train DNN for n_epochs times
+  # Train DNN  n_epochs times
   for epoch in range(n_epochs):
     n_batch_in_one_epoch = int(mnist.train.num_examples/batch_size)
     
