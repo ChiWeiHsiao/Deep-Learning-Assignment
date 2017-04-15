@@ -10,7 +10,7 @@ params = {
   'pool_kernel': 3,
   'pool_stride': 2,
   'dropout': 0.1, # i.e. keep_prob = 1-params['dropout']
-  'epoch': 5,
+  'epoch': 3,
   'batch_size': 128,
 }
 
@@ -65,24 +65,21 @@ def add_fully(in_tensor, n_out):
 # Graph input
 x = tf.placeholder('float', [None, IMG_HEIGHT, IMG_WIDTH, IMG_CHANNEL])
 y_truth = tf.placeholder('float', [None, NUM_CLASS])
-# Conv 1: [-1, 32, 32, 1] -> [-1, 32, 32, 64]
 input_layer = tf.reshape(x, shape=[-1, 32, 32, 3])
-conv1 = add_conv(input_layer, 64)
-# Pool 1: [-1, 32, 32, 64] -> [-1, 16, 16, 64] (if stride=2)
-pool1 = add_maxpool(conv1)
+
+conv1 = add_conv(input_layer, 64) #[-1, 32, 32, 1] -> [-1, 32, 32, 64]
+pool1 = add_maxpool(conv1) #[-1, 32, 32, 64] -> [-1, 16, 16, 64] (if stride=2)
 lrn1 = add_lrn(pool1)
-# Conv 2: [-1, 16, 16, 64] -> [-1, 16, 16, 64]
-conv2 = add_conv(lrn1, 64) #64 or 128
-# Pool 2: [-1, 16, 16, 64] -> [-1, 8, 8, 64]
-pool2 = add_maxpool(conv2)
+
+conv2 = add_conv(lrn1, 64) #[-1, 16, 16, 64] -> [-1, 16, 16, 64]
+pool2 = add_maxpool(conv2)  #[-1, 16, 16, 64] -> [-1, 8, 8, 64]
 lrn2 = add_lrn(pool2)
-# Flatten: [-1, 8, 8, 64] -> [-1, 8*8*64 = 4096]
-flatten = tf.contrib.layers.flatten(lrn2)
-# Fully Connected 1:  [-1, 8*8*64 = 8192] -> [-1, 384]
-fc1 = add_fully(flatten, 384)
+flatten = tf.contrib.layers.flatten(lrn2) #[-1, 8, 8, 64] -> [-1, 8*8*64 = 4096] 
+
+fc1 = add_fully(flatten, 384) #[-1, 8*8*64 = 8192] -> [-1, 384]
 fc1_drop = tf.nn.dropout(fc1, params['dropout'])
-# Output, (fully connected): [-1, 384] -> [-1, 10]
-y_predict = add_fully(fc1_drop, 10) # no sofmax, apply softmax in cost funct
+# Output: no sofmax, apply softmax in cost funct 
+y_predict = add_fully(fc1_drop, 10) #[-1, 384] -> [-1, 10]
 
 # Define cost and optimizer
 cost = tf.reduce_mean( tf.nn.softmax_cross_entropy_with_logits(labels=y_truth, logits=y_predict) )
@@ -91,6 +88,15 @@ train_step = tf.train.AdamOptimizer(learning_rate=0.001).minimize(cost)
 # Test the accuracy of trained DNN
 correct_prediction = tf.equal(tf.argmax(y_predict,1), tf.argmax(y_truth,1))
 accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
+
+# Define additional operator for extract_featuremap
+# Resize channel to 3 for r,g,b display
+fmap_conv1 = add_conv(conv1, 3)
+fmap_pool1 = add_conv(pool1, 3)
+fmap_lrn1 = add_conv(lrn1, 3)
+fmap_conv2 = add_conv(conv2, 3)
+fmap_pool2 = add_conv(pool2, 3)
+fmap_lrn2 = add_conv(lrn2, 3)
 
 
 
@@ -114,24 +120,21 @@ def calculate_accuracy(sess, features, labels):
   acc = acc /iterations
   return acc
   
-def extract_featuremap(sess, layer, feature, label):
-  channels = sess.run( layer, feed_dict={x: image, y_truth: label})[0] 
+def extract_featuremap(sess, layer, feature, label, channel):
+  channels = sess.run( layer, feed_dict={x: feature, y_truth: label})[0] 
   # channels contain multi channels of fmap
   # choose one from channels
-  which = 0 
-  fmap = channels[:,:,which]
-  # preserve only four digit after decimal point
-  fmap = np.around(fmap, decimals=4)
-  tolist = fmap.tolist()
-  return tolist
+  fmap = channels[:,:,channel]
+  #fmap = np.around(fmap, decimals=4)
+  return fmap.tolist()
 
-def extract_multiple_featuremaps(sess, feature, label, name):
-  log[name]['conv1'] = extract_featuremap(sess, conv1, feature, label)
-  log[name]['pool1'] = extract_featuremap(sess, pool1, feature, label)
-  log[name]['lrn1'] = extract_featuremap(sess, lrn1, feature, label)
-  log[name]['conv2'] = extract_featuremap(sess, conv2, feature, label)
-  log[name]['pool2'] = extract_featuremap(sess, pool2, feature, label)
-  log[name]['lrn2'] = extract_featuremap(sess, lrn2, feature, label)
+def extract_multiple_featuremaps(sess, feature, label, name, channel):
+  log[name]['conv1'] = extract_featuremap(sess, fmap_conv1, feature, label, channel)
+  log[name]['pool1'] = extract_featuremap(sess, fmap_pool1, feature, label, channel)
+  log[name]['lrn1'] = extract_featuremap(sess, fmap_lrn1, feature, label, channel)
+  log[name]['conv2'] = extract_featuremap(sess, fmap_conv2, feature, label, channel)
+  log[name]['pool2'] = extract_featuremap(sess, fmap_pool2, feature, label, channel)
+  log[name]['lrn2'] = extract_featuremap(sess, fmap_lrn2, feature, label, channel)
   return
 
 # Launch the graph
@@ -140,8 +143,6 @@ with tf.Session() as sess:
   init = tf.global_variables_initializer()
   sess.run(init)
   # Initial accuracy log
-  #batch_x, batch_y = train_data.next_batch()
-
   init_train_acc = calculate_accuracy(sess, train_X, train_Y)
   init_test_acc = calculate_accuracy(sess, test_X, test_Y) #sess.run(accuracy, feed_dict={x: test_batch_x, y_truth: test_batch_y}).tolist()
   log['train_accuracy_per_epoch'].append(init_train_acc)
@@ -149,7 +150,7 @@ with tf.Session() as sess:
   # Train DNN for n_epochs times
 
   for epoch in range(params['epoch']):
-    print('------------ Epoch %3d -------------' % (epoch))
+    print('Epoch %3d:\t' %(epoch) , end="")
     train(sess, train_X, train_Y, params['batch_size'])
     # Output accuracy
     train_acc = calculate_accuracy(sess, train_X[0:501], train_Y[0:501])
@@ -159,17 +160,17 @@ with tf.Session() as sess:
     log['test_accuracy_per_epoch'].append(test_acc)
     
     # Output feature maps in the middle of training process
-    #if epoch == params['epoch'] / 2:
-      #extract_multiple_featuremaps(sess, first_image, first_label, name='feature_map_0')
-      #log['feature_map_0'] = sess.run( conv1, feed_dict={x: first_image})[0].flatten().tolist() 
+    if epoch == int(params['epoch'] / 2):
+      extract_multiple_featuremaps(sess, first_image, first_label, name='feature_map_0', channel=0)
+      log['feature_map_0'] = sess.run( conv1, feed_dict={x: first_image})[0].flatten().tolist() 
 
-  print("Training Finished!")
+  # show one predict sample
   print('Predict first image as:', tf.Tensor.eval(tf.argmax( sess.run(y_predict, feed_dict={x: first_image}), 1)[0]))
   print('Groundtruth first image:', tf.Tensor.eval(tf.argmax(first_label, 1)[0]))
 
   # Output feature maps after training
-  #extract_multiple_featuremaps(sess, first_image, first_label, name='feature_map_1')
-  #log['feature_map_1'] = sess.run( conv1, feed_dict={x: first_image})[0].flatten().tolist() 
+  extract_multiple_featuremaps(sess, first_image, first_label, name='feature_map_1', channel=0)
+  log['feature_map_1'] = sess.run( conv1, feed_dict={x: first_image})[0].flatten().tolist() 
 
 
 # Merge params data into log
