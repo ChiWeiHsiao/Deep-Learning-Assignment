@@ -4,8 +4,9 @@ import json
 import numpy as np
 
 # read r,g,b arrays from file
-experiment_id = 'toy'
-filename = 'statistics/'+experiment_id
+experiment_id = 'first'
+  #filename = 'statistics/'+experiment_id
+filename = experiment_id
 jsonfile = filename+'.json'
 
 with open(jsonfile, 'r') as f:
@@ -44,6 +45,8 @@ def draw_fmap(fmap, layer_name):
   # Transform to np array
   fmap = np.array(fmap)
   print('fmap:', fmap.shape)
+  if fmap.shape[0] == 1:
+    fmap = fmap[0]
   img_size = fmap.shape[1]
   r, g, b = np.dsplit(fmap, 3)
   print('r:', r.shape)
@@ -66,7 +69,7 @@ def draw_fmap(fmap, layer_name):
   rgbArray[..., 1] = g*256
   rgbArray[..., 2] = b*256
   img = Image.fromarray(rgbArray)
-  img.show()
+  #img.show()
   img.save(filename)
 
 
@@ -75,7 +78,7 @@ def plot_accuracy(figure, title):
   # Find out border
   left = 0
   right = len(train_accuracy)
-  top = np.amax( np.array(train_accuracy.append(test__accuracy)) )
+  top = np.amax( train_accuracy )
   bottom = 0
 
   plt.figure(figure)
@@ -99,6 +102,22 @@ def plot_accuracy(figure, title):
 
 
 if __name__ == '__main__':
-  plot_accuracy(str(experiment_id)+'__acc', 'learning curve')
+  acc_filename = str(experiment_id)+'__acc'
+  plot_accuracy(acc_filename, 'learning curve')
   draw_fmap(original_image, 'original_image')
-  draw_fmap(fmap0_conv1, 'fmap0_conv1')
+  
+  draw_fmap(fmap0_conv1[0], 'fmap0_conv1')
+  draw_fmap(fmap0_pool1[0], 'fmap0_pool1')
+  draw_fmap(fmap0_lrn1[0], 'fmap0_lrn1')
+  draw_fmap(fmap0_conv2[0], 'fmap0_conv2')
+  draw_fmap(fmap0_pool2[0], 'fmap0_pool2')
+  draw_fmap(fmap0_lrn2[0], 'fmap0_lrn2')
+
+
+  draw_fmap(fmap1_conv1[0], 'fmap1_conv1')
+  draw_fmap(fmap1_pool1[0], 'fmap1_pool1')
+  draw_fmap(fmap1_lrn1[0], 'fmap1_lrn1')
+  draw_fmap(fmap1_conv2[0], 'fmap1_conv2')
+  draw_fmap(fmap1_pool2[0], 'fmap1_pool2')
+  draw_fmap(fmap1_lrn2[0], 'fmap1_lrn2')
+  
