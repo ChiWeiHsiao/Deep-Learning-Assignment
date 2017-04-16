@@ -7,8 +7,8 @@ import json
 mnist = input_data.read_data_sets("/tmp//mnist", one_hot=True)
 
 # Regularization option {None, 'L1', 'L2', 'dropout'}
-regularizer = 'dropout'
-run_id = '6'
+regularizer = 'L2'
+run_id = '3'
 experiment_id = str(regularizer)+ '_' + run_id
 regular_scale = 0.1 #if use 'L1' or 'L2'
 dropout_p = 0.75 #if use dropout
@@ -16,7 +16,7 @@ logfile = 'statistics/'+experiment_id
 logfile += '.json'
 
 # Training Parameters
-n_epochs = 200
+n_epochs = 50
 batch_size = 128
 learning_rate = 0.001
 
@@ -53,7 +53,7 @@ def add_regularization(cost, weights, option='L2', scale=0.0):
   elif option=='L1':
      for w in weights:
       regularization += tf.contrib.layers.l1_regularizer(scale)(w)
-  return tf.reduce_mean(cost + scale*regularization) 
+  return tf.reduce_mean(cost + regularization) 
 
 
 ''' Build Computation Gragh  DNN model '''

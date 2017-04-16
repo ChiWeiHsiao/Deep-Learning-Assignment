@@ -46,7 +46,7 @@ def add_regularization(cost, weights, option='L2', scale=0.0):
   elif option=='L1':
      for w in weights:
       regularization += tf.contrib.layers.l1_regularizer(scale)(w)
-  return tf.reduce_mean(cost + scale*regularization) 
+  return tf.reduce_mean(cost + regularization) 
 
 
 ''' Build Computation Gragh  DNN model '''
