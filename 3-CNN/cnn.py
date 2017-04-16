@@ -5,16 +5,17 @@ import json
 from util import get_cifar_10
 
 params = {
-  'conv_filter': 3,
+  'conv1_filter': 3,
+  'conv2_filter': 3,
   'conv_stride': 1,
-  'pool_kernel': 3,
+  'pool_kernel': 1,
   'pool_stride': 2,
   'dropout': 0.1, # i.e. keep_prob = 1-params['dropout']
-  'epoch': 3,
+  'epoch': 10, #20 20 20
   'batch_size': 128,
 }
 
-eid = 'try'
+eid = '8'
 log = {
   'experiment_id': eid,
   'train_accuracy_per_epoch': [],
@@ -29,22 +30,27 @@ print('id: ', eid)
 print('num of epochs:', params['epoch'])
 
 ''' Load data '''
-label_name, train_X, train_Y, test_X, test_Y = get_cifar_10()
+label_name, train_X, train_Y, test_X, test_Y, first_image, first_label = get_cifar_10()
 IMG_HEIGHT, IMG_WIDTH, IMG_CHANNEL = train_X.shape[1:4]
 NUM_CLASS = train_Y.shape[1]
 TRAIN_SIZE = train_X.shape[0]
 
-log['original_image'] = train_X[0].tolist()
-first_image = np.reshape(train_X[0], (1, IMG_HEIGHT, IMG_WIDTH, IMG_CHANNEL))
-first_label = np.reshape(train_Y[0], (1, NUM_CLASS)) # add one dim, to make first_label as a batch
+#log['original_image'] = first_image.tolist()
+print('first image shape = ', first_image.shape)
+print('first image shape = ', first_label.shape)
 
+'''
+first_image = np.reshape(train_X[0], (1, IMG_HEIGHT, IMG_WIDTH, IMG_CHANNEL))                                                                         
+first_label = np.reshape(train_Y[0], (1, NUM_CLASS)) # add one dim, to make first_label as a batch
+log['original_image'] = train_X[0].tolist()
+'''
 
 ''' tf Wrapper '''
-def add_conv(in_tensor, out_size):
+def add_conv(in_tensor, out_size, conv_filter):
   biases_initializer = tf.constant_initializer(0.)
   weights_initializer = tf.uniform_unit_scaling_initializer(seed=None, dtype=tf.float32)
 
-  conv = tf.contrib.layers.conv2d(in_tensor, out_size, kernel_size=params['conv_filter'], stride=params['conv_stride'], activation_fn=None, biases_initializer=biases_initializer, weights_initializer=weights_initializer, padding='SAME')
+  conv = tf.contrib.layers.conv2d(in_tensor, out_size, kernel_size=conv_filter, stride=params['conv_stride'], activation_fn=None, biases_initializer=biases_initializer, weights_initializer=weights_initializer, padding='SAME')
   return tf.nn.relu(conv)
 
 def add_maxpool(in_tensor):
@@ -67,11 +73,11 @@ x = tf.placeholder('float', [None, IMG_HEIGHT, IMG_WIDTH, IMG_CHANNEL])
 y_truth = tf.placeholder('float', [None, NUM_CLASS])
 input_layer = tf.reshape(x, shape=[-1, 32, 32, 3])
 
-conv1 = add_conv(input_layer, 64) #[-1, 32, 32, 1] -> [-1, 32, 32, 64]
+conv1 = add_conv(input_layer, 64, params['conv1_filter']) #[-1, 32, 32, 1] -> [-1, 32, 32, 64]
 pool1 = add_maxpool(conv1) #[-1, 32, 32, 64] -> [-1, 16, 16, 64] (if stride=2)
 lrn1 = add_lrn(pool1)
 
-conv2 = add_conv(lrn1, 64) #[-1, 16, 16, 64] -> [-1, 16, 16, 64]
+conv2 = add_conv(lrn1, 64, params['conv2_filter']) #[-1, 16, 16, 64] -> [-1, 16, 16, 64]
 pool2 = add_maxpool(conv2)  #[-1, 16, 16, 64] -> [-1, 8, 8, 64]
 lrn2 = add_lrn(pool2)
 flatten = tf.contrib.layers.flatten(lrn2) #[-1, 8, 8, 64] -> [-1, 8*8*64 = 4096] 
@@ -91,12 +97,13 @@ accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 
 # Define additional operator for extract_featuremap
 # Resize channel to 3 for r,g,b display
-fmap_conv1 = add_conv(conv1, 3)
-fmap_pool1 = add_conv(pool1, 3)
-fmap_lrn1 = add_conv(lrn1, 3)
-fmap_conv2 = add_conv(conv2, 3)
-fmap_pool2 = add_conv(pool2, 3)
-fmap_lrn2 = add_conv(lrn2, 3)
+  #add_conv(in_tensor, out_size, conv_filter):
+fmap_conv1 = add_conv(conv1, 3, 1)
+fmap_pool1 = add_conv(pool1, 3, 1)
+fmap_lrn1 = add_conv(lrn1, 3, 1)
+fmap_conv2 = add_conv(conv2, 3, 1)
+fmap_pool2 = add_conv(pool2, 3, 1)
+fmap_lrn2 = add_conv(lrn2, 3, 1)
 
 
 
@@ -120,22 +127,24 @@ def calculate_accuracy(sess, features, labels):
   acc = acc /iterations
   return acc
   
-def extract_featuremap(sess, layer, feature, label, channel):
-  channels = sess.run( layer, feed_dict={x: feature, y_truth: label})[0] 
-  # channels contain multi channels of fmap
-  # choose one from channels
-  fmap = channels[:,:,channel]
+def extract_featuremap(sess, layer, feature, label):
+  # [-1, size, size, 3]
+  fmap = sess.run( layer, feed_dict={x: feature, y_truth: label})
   #fmap = np.around(fmap, decimals=4)
-  return fmap.tolist()
+  return fmap
 
-def extract_multiple_featuremaps(sess, feature, label, name, channel):
-  log[name]['conv1'] = extract_featuremap(sess, fmap_conv1, feature, label, channel)
-  log[name]['pool1'] = extract_featuremap(sess, fmap_pool1, feature, label, channel)
-  log[name]['lrn1'] = extract_featuremap(sess, fmap_lrn1, feature, label, channel)
-  log[name]['conv2'] = extract_featuremap(sess, fmap_conv2, feature, label, channel)
-  log[name]['pool2'] = extract_featuremap(sess, fmap_pool2, feature, label, channel)
-  log[name]['lrn2'] = extract_featuremap(sess, fmap_lrn2, feature, label, channel)
+def extract_multiple_featuremaps(sess, feature, label, name):
+  log['original_image'] = extract_featuremap(sess, input_layer, feature, label).tolist() 
+  log[name]['conv1'] = extract_featuremap(sess, fmap_conv1, feature, label).tolist()
+  log[name]['pool1'] = extract_featuremap(sess, fmap_pool1, feature, label).tolist()
+  log[name]['lrn1'] = extract_featuremap(sess, fmap_lrn1, feature, label).tolist()
+  log[name]['conv2'] = extract_featuremap(sess, fmap_conv2, feature, label).tolist()
+  log[name]['pool2'] = extract_featuremap(sess, fmap_pool2, feature, label).tolist()
+  log[name]['lrn2'] = extract_featuremap(sess, fmap_lrn2, feature, label).tolist()
+  print('feature map\'s shape = ', extract_featuremap(sess, fmap_conv1, feature, label).shape)
   return
+
+saver = tf.train.Saver()
 
 # Launch the graph
 with tf.Session() as sess:
@@ -150,7 +159,7 @@ with tf.Session() as sess:
   # Train DNN for n_epochs times
 
   for epoch in range(params['epoch']):
-    print('Epoch %3d:\t' %(epoch) , end="")
+    print('Epoch %3d:\t' %(epoch+1) , end="")
     train(sess, train_X, train_Y, params['batch_size'])
     # Output accuracy
     train_acc = calculate_accuracy(sess, train_X[0:501], train_Y[0:501])
@@ -161,20 +170,22 @@ with tf.Session() as sess:
     
     # Output feature maps in the middle of training process
     if epoch == int(params['epoch'] / 2):
-      extract_multiple_featuremaps(sess, first_image, first_label, name='feature_map_0', channel=0)
-      log['feature_map_0'] = sess.run( conv1, feed_dict={x: first_image})[0].flatten().tolist() 
+      extract_multiple_featuremaps(sess, first_image, first_label, name='feature_map_0')
+  # Save the model
+  save_path = saver.save(sess, "/tmp/model.ckpt")
+  print("Model saved in file: %s" % save_path)
+
 
   # show one predict sample
   print('Predict first image as:', tf.Tensor.eval(tf.argmax( sess.run(y_predict, feed_dict={x: first_image}), 1)[0]))
   print('Groundtruth first image:', tf.Tensor.eval(tf.argmax(first_label, 1)[0]))
 
   # Output feature maps after training
-  extract_multiple_featuremaps(sess, first_image, first_label, name='feature_map_1', channel=0)
-  log['feature_map_1'] = sess.run( conv1, feed_dict={x: first_image})[0].flatten().tolist() 
+  extract_multiple_featuremaps(sess, first_image, first_label, name='feature_map_1')
 
 
 # Merge params data into log
 log.update(params)
 # Print weights and accuracy log to json file
 with open(logfile, 'w') as f:
-  json.dump(log, f)
+  json.dump(log, f, indent=1)

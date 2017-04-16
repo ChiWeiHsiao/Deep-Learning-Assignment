@@ -7,11 +7,11 @@ import json
 mnist = input_data.read_data_sets("/tmp//mnist", one_hot=True)
 
 # Regularization option {None, 'L1', 'L2', 'dropout'}
-regularizer = 'L1'
+regularizer = 'dropout'
 run_id = '5'
 experiment_id = str(regularizer) + run_id
 regular_scale = 0.1 #if use 'L1' or 'L2'
-dropout_p = 0.3 #if use dropout
+dropout_p = 0.75 #if use dropout
 logfile = 'statistics/'+experiment_id
 logfile += '.json'
 
@@ -24,7 +24,6 @@ learning_rate = 0.001
 n_input = 784
 n_out = 10
 n_hidden_1 = 256
-n_hidden_2 = 128 #256
 
 # Log
 log = {
@@ -47,7 +46,7 @@ def add_regularization(cost, weights, option='L2', scale=0.0):
   elif option=='L1':
      for w in weights:
       regularization += tf.contrib.layers.l1_regularizer(scale)(w)
-  return tf.reduce_mean(cost+regularization) 
+  return tf.reduce_mean(cost + scale*regularization) 
 
 
 ''' Build Computation Gragh  DNN model '''
@@ -61,23 +60,16 @@ layer_1 = tf.add(tf.matmul(x, w_1), b_1)
 layer_1 = tf.nn.relu(layer_1)
 if regularizer == 'dropout':
   layer_1 = tf.nn.dropout(layer_1, dropout_p)
-# layer 2
-w_2 = tf.Variable(tf.random_normal([n_hidden_1, n_hidden_2]))
-b_2 = tf.Variable(tf.random_normal([n_hidden_2]))
-layer_2 = tf.add(tf.matmul(layer_1, w_2), b_2)
-layer_2 = tf.nn.relu(layer_2)
-if regularizer == 'dropout':
-  layer_2 = tf.nn.dropout(layer_2, dropout_p)
-# layer 3: output
-w_3 = tf.Variable(tf.random_normal([n_hidden_2, n_out]))
-b_3 = tf.Variable(tf.random_normal([n_out]))
-out_layer = tf.add(tf.matmul(layer_2, w_3), b_3)
+# layer 2: output
+w_2 = tf.Variable(tf.random_normal([n_hidden_1, n_out]))
+b_2 = tf.Variable(tf.random_normal([n_out]))
+out_layer = tf.add(tf.matmul(layer_1, w_2), b_2)
 y_predict = out_layer
 # Cost Function
 cost = tf.reduce_mean(
     tf.nn.softmax_cross_entropy_with_logits(labels=y_truth, logits=y_predict))
 if(regularizer=='L1' or regularizer=='L2'):
-  cost = add_regularization(cost, [w_1, w_2, w_3], regularizer, regular_scale)
+  cost = add_regularization(cost, [w_1, w_2], regularizer, regular_scale)
 train_step = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(cost)
 
 
@@ -112,10 +104,8 @@ with tf.Session() as sess:
   # weights and bias, transform ndarray to 1D list
   log['weight_1'] = sess.run(w_1).flatten().tolist()
   log['weight_2'] = sess.run(w_2).flatten().tolist()
-  log['weight_3'] = sess.run(w_3).flatten().tolist()
   log['bias_1'] = sess.run(b_1).flatten().tolist()
   log['bias_2'] = sess.run(b_2).flatten().tolist()
-  log['bias_3'] = sess.run(b_3).flatten().tolist()
 print("Training Finished!")
 
 params = {
