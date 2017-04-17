@@ -7,8 +7,8 @@ import json
 mnist = input_data.read_data_sets("/tmp//mnist", one_hot=True)
 
 # Regularization option {None, 'L1', 'L2', 'dropout'}
-regularizer = 'None'
-run_id = '5layer_batch_1024'
+regularizer = 'L2'
+run_id = 'try'
 experiment_id = str(regularizer)+ '_' + run_id
 regular_scale = 0.1 #if use 'L1' or 'L2'
 dropout_p = 0.75 #if use dropout
@@ -16,8 +16,8 @@ logfile = 'statistics/'+experiment_id
 logfile += '.json'
 
 # Training Parameters
-n_epochs = 30
-batch_size = 1024
+n_epochs = 1
+batch_size = 128
 learning_rate = 0.001
 
 # Network Parameters
@@ -43,7 +43,8 @@ log = {
   'bias_3': [],
   'bias_4': [],
   'bias_5': [],
-  'count_non_zeros': 0,
+  'count_zeros': 0,
+  'num_total_weight': 0
 }
 
 def add_regularization(cost, weights, option='L2', scale=0.0):
@@ -143,10 +144,14 @@ with tf.Session() as sess:
   log['bias_3'] = sess.run(b_3).flatten().tolist()
   log['bias_4'] = sess.run(b_4).flatten().tolist()
   log['bias_5'] = sess.run(b_5).flatten().tolist()
-  log['count_non_zeros'] = 1 - tf.count_nonzero(tf.concat([log['weight_1'], log['weight_2'], log['weight_3']], axis=-1))
+
+  weights = log['weight_1'] + log['weight_2'] + log['weight_3'] + log['weight_4'] + log['weight_5']
+  log['num_total_weight'] = len(weights)
+  log['count_zeros'] =  log['num_total_weight'] - sess.run( tf.count_nonzero(weights)).tolist()
 
 print("Training Finished!")
-print('Zero elements in weights: ', log['count_non_zeros'])
+print('Zero elements in weights: ', log['count_zeros'])
+print('Total elements in weights: ', log['num_total_weight'])
 
 params = {
   'regularizer': regularizer,

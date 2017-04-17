@@ -36,7 +36,8 @@ log = {
   'bias_1': [],
   'bias_2': [],
   'bias_3': [],
-  'count_non_zeros': 0,
+  'count_zeros': 0,
+  'num_total_weight': 0
 }
 
 def add_regularization(cost, weights, option='L2', scale=0.0):
@@ -109,10 +110,14 @@ with tf.Session() as sess:
   log['weight_2'] = sess.run(w_2).flatten().tolist()
   log['bias_1'] = sess.run(b_1).flatten().tolist()
   log['bias_2'] = sess.run(b_2).flatten().tolist()
-  log['count_non_zeros'] = tf.count_nonzero(tf.concat([log['weight_1'], log['weight_2'], log['weight_3']], axis=-1))
+  
+  weights = log['weight_1'] + log['weight_2']
+  log['num_total_weight'] = len(weights)
+  log['count_zeros'] =  log['num_total_weight'] - sess.run( tf.count_nonzero(weights)).tolist()
 
 print("Training Finished!")
-print('Zero elements in weights: ', log['count_non_zeros'])
+print('Zero elements in weights: ', log['count_zeros'])
+print('Total elements in weights: ', log['num_total_weight'])
 
 params = {
   'regularizer': regularizer,
