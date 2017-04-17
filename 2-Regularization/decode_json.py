@@ -2,7 +2,8 @@ import matplotlib.pyplot as plt
 import json
 import numpy as np
 
-id = 'L2_1'
+id = 'L1_1'
+print('Experiment ',id)
 print(id)
 n_layers = 3
 
@@ -40,8 +41,8 @@ def plot_accuracy(figure, title):
   plt.xlabel('Number of epochs')
   plt.ylabel('Accuracy')
   plt.legend()
-  plt.text(right/2, 0.1075, 'Final Train Accuracy = {:.2f}%'.format(100*train_accuracy[-1]), fontsize=10, color='green')
-  plt.text(right/2, 0.1100,  'Final Test Accuracy  = {:.2f}%'.format(100*test_accuracy[-1]), fontsize=10, color='green')
+  plt.text(right/2, top-top/4.5, 'Final Train Accuracy = {:.2f}%'.format(100*train_accuracy[-1]), fontsize=10, color='green')
+  plt.text(right/2, top-top/6,  'Final Test Accuracy  = {:.2f}%'.format(100*test_accuracy[-1]), fontsize=10, color='green')
   plt.savefig(figure+'.png')
 
 # Show weights histogram
@@ -66,40 +67,29 @@ def plot_hist(figure, title, weight):
   plt.ylabel('count')
   plt.savefig(figure+'.png')
 
-def plot_small_hist(figure, title, weights):
-  fig, ax = plt.subplots(ncols=1)
-  #xticks = np.arange(-1.0, 1.0, 0.001)
-  ax.set_title(title)
-  #ax.set_xticks(xticks)
-  ax.grid(True)
-  ax.set_xlim(-1e-7, 1e-7)
-  color = ['red', 'yellow', 'cyan', '#f20ca9', 'black']
-  alpha = [0.6, 0.4, 0.4, 0.3, 0.15]
-  for i in range(len(weights)):
-    ax.hist(weights[i], bins=1000, facecolor=color[i], alpha=alpha[i], label='h'+str(i+1), normed=1)
-  plt.xlabel('value')
-  plt.ylabel('count')
-  ax.legend()
-  #ax.show()
-  plt.savefig(figure+'.png')
 
 def count_exact_zero(weights):
-  cnt = 0
+  cnt_zero = 0
+  cnt_small = 0
   total = 0
   for w in weights:
     for i in w:
       total += 1
-      if np.absolute(i) <= 1e-5:
-        cnt += 1
-      #if np.absolute(i) == 0:
-        #cnt += 1
-  print('Exactly zero: ', cnt)
+      if np.absolute(i) == 0:
+        cnt_zero += 1
+      elif np.absolute(i) <= 1e-20:
+        cnt_small += 1
+  print('Exactly zero: ', cnt_zero)
+  print('Smaller than 1e-20: ', cnt_small)
   print('Total: ', total)
 
 if __name__ == '__main__':
-  #plot_accuracy('acc_'+id, 'learning curve')
-  #plot_hist_all('hist_all_'+id, 'hisltogram_all', weights)
   count_exact_zero(weights)
-  #for i in range(len(weights)):
-    #plot_hist('hist_h'+str(i+1)+'_'+id, 'hisltogram_h'+str(i+1), weights[i])
-  #plot_hist('hist_h1_'+id, 'hisltogram_h1', weight_1)
+
+  #plot_accuracy('acc_'+id, 'learning curve')
+
+  '''
+  plot_hist_all('hist_all_'+id, 'hisltogram_all', weights)
+  for i in range(len(weights)):
+    plot_hist('hist_h'+str(i+1)+'_'+id, 'hisltogram_h'+str(i+1), weights[i])
+'''

@@ -35,18 +35,21 @@ log = {
   'weight_3': [],
   'bias_1': [],
   'bias_2': [],
-  'bias_3': []
+  'bias_3': [],
+  'count_non_zeros': 0,
 }
 
 def add_regularization(cost, weights, option='L2', scale=0.0):
   regularization = 0
   if option=='L2':
-     for w in weights:
+    for w in weights:
       regularization += tf.contrib.layers.l2_regularizer(scale)(w)
+    # multiply by 2, because tf implemntation l2 norm as: sum(t ** 2) / 2'
+    regularization = tf.scalar_mul(2, regularization) 
   elif option=='L1':
-     for w in weights:
-      regularization += tf.contrib.layers.l1_regularizer(scale)(w)
-  return tf.reduce_mean(cost + regularization) 
+    for w in weights:
+      regularization += tf.contrib.layers.l1_regularizer(scale)(w) #tf implement: sclale * abs(w)
+  return tf.reduce_sum(cost+regularization) 
 
 
 ''' Build Computation Gragh  DNN model '''
@@ -106,7 +109,10 @@ with tf.Session() as sess:
   log['weight_2'] = sess.run(w_2).flatten().tolist()
   log['bias_1'] = sess.run(b_1).flatten().tolist()
   log['bias_2'] = sess.run(b_2).flatten().tolist()
+  log['count_non_zeros'] = tf.count_nonzero(tf.concat([log['weight_1'], log['weight_2'], log['weight_3']], axis=-1))
+
 print("Training Finished!")
+print('Zero elements in weights: ', log['count_non_zeros'])
 
 params = {
   'regularizer': regularizer,

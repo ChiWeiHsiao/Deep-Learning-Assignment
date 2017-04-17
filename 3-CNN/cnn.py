@@ -8,14 +8,14 @@ params = {
   'conv1_filter': 3,
   'conv2_filter': 3,
   'conv_stride': 1,
-  'pool_kernel': 1,
+  'pool_kernel': 7,
   'pool_stride': 2,
   'dropout': 0.1, # i.e. keep_prob = 1-params['dropout']
-  'epoch': 10, #20 20 20
+  'epoch': 20, #20 20 20
   'batch_size': 128,
 }
 
-eid = '8'
+eid = '7'
 log = {
   'experiment_id': eid,
   'train_accuracy_per_epoch': [],
@@ -172,7 +172,7 @@ with tf.Session() as sess:
     if epoch == int(params['epoch'] / 2):
       extract_multiple_featuremaps(sess, first_image, first_label, name='feature_map_0')
   # Save the model
-  save_path = saver.save(sess, "/tmp/model.ckpt")
+  save_path = saver.save(sess, "./model.ckpt")
   print("Model saved in file: %s" % save_path)
 
 

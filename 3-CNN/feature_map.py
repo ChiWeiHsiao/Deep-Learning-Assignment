@@ -4,10 +4,10 @@ import json
 import numpy as np
 
 # read r,g,b arrays from file
-experiment_id = 'first'
+experiment_id = '7'
   #filename = 'statistics/'+experiment_id
 filename = experiment_id
-jsonfile = filename+'.json'
+jsonfile = 'statistics/'+filename+'.json'
 
 with open(jsonfile, 'r') as f:
   log = json.load(f)

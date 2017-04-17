@@ -8,22 +8,22 @@ mnist = input_data.read_data_sets("/tmp//mnist", one_hot=True)
 
 # Regularization option {None, 'L1', 'L2', 'dropout'}
 regularizer = 'L1'
-run_id = '5'
-experiment_id = str(regularizer) + run_id
-regular_scale = 0.1 #if use 'L1' or 'L2'
+run_id = '1'
+experiment_id = str(regularizer) + '_' + run_id
+regular_scale = 0.01 #if use 'L1' or 'L2'
 dropout_p = 0.3 #if use dropout
 logfile = 'statistics/'+experiment_id
 logfile += '.json'
 
 # Training Parameters
-n_epochs = 200
+n_epochs = 30 # 50
 batch_size = 128
 learning_rate = 0.001
 
 # Network Parameters
 n_input = 784
 n_out = 10
-n_hidden_1 = 256
+n_hidden_1 = 128
 n_hidden_2 = 128 #256
 
 # Log
@@ -36,18 +36,22 @@ log = {
   'weight_3': [],
   'bias_1': [],
   'bias_2': [],
-  'bias_3': []
+  'bias_3': [],
+  'count_non_zeros': 0,
 }
 
 def add_regularization(cost, weights, option='L2', scale=0.0):
   regularization = 0
   if option=='L2':
-     for w in weights:
+    for w in weights:
       regularization += tf.contrib.layers.l2_regularizer(scale)(w)
+    # multiply by 2, because tf implemntation l2 norm as: sum(t ** 2) / 2'
+    regularization = tf.scalar_mul(2, regularization) 
   elif option=='L1':
-     for w in weights:
-      regularization += tf.contrib.layers.l1_regularizer(scale)(w)
-  return tf.reduce_mean(cost+regularization) 
+    for w in weights:
+      regularization += tf.contrib.layers.l1_regularizer(scale)(w) #tf implement: sclale * abs(w)
+  return tf.reduce_sum(cost+regularization) 
+
 
 
 ''' Build Computation Gragh  DNN model '''
@@ -116,7 +120,10 @@ with tf.Session() as sess:
   log['bias_1'] = sess.run(b_1).flatten().tolist()
   log['bias_2'] = sess.run(b_2).flatten().tolist()
   log['bias_3'] = sess.run(b_3).flatten().tolist()
+  log['count_non_zeros'] =  tf.count_nonzero(tf.concat([log['weight_1'], log['weight_2'], log['weight_3']], axis=-1))
+
 print("Training Finished!")
+print('Zero elements in weights: ', log['count_non_zeros'])
 
 params = {
   'regularizer': regularizer,
