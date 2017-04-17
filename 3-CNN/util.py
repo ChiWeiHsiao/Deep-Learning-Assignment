@@ -35,12 +35,8 @@ def get_cifar_10():
 			Y = np.append(Y, batch['labels'], axis=0)
 	first_image = X[0]
 	first_label = to_categorical( np.reshape(Y[0], [1,1]), 10)
-	print('first image: ', first_image.shape)
 	first_image = np.dstack((first_image[:1024], first_image[1024:2048], first_image[2048:]))
-	print('first image: ', first_image.shape)
 	first_image = np.reshape(first_image, [1, 32, 32, 3])
-	print('first image: ', first_image.shape)
-	print('first_label: ', first_label)
 	# seems no need for shuffle
 	X, Y = shuffle(X, Y)
 	test_batch = unpickle('../data/CIFAR-10/test_batch')

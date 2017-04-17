@@ -7,10 +7,11 @@ import json
 mnist = input_data.read_data_sets("/tmp//mnist", one_hot=True)
 
 # Regularization option {None, 'L1', 'L2', 'dropout'}
-regularizer = 'L1'
-run_id = '1'
+regularizer = 'L2'
+run_id = '2'
 experiment_id = str(regularizer) + '_' + run_id
-regular_scale = 0.01 #if use 'L1' or 'L2'
+print(experiment_id)
+regular_scale = 0.001 #if use 'L1' or 'L2'
 dropout_p = 0.3 #if use dropout
 logfile = 'statistics/'+experiment_id
 logfile += '.json'

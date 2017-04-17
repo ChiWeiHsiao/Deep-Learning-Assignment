@@ -8,15 +8,16 @@ mnist = input_data.read_data_sets("/tmp//mnist", one_hot=True)
 
 # Regularization option {None, 'L1', 'L2', 'dropout'}
 regularizer = 'L2'
-run_id = 'try'
+run_id = '5'
 experiment_id = str(regularizer)+ '_' + run_id
+print(experiment_id)
 regular_scale = 0.1 #if use 'L1' or 'L2'
 dropout_p = 0.75 #if use dropout
 logfile = 'statistics/'+experiment_id
 logfile += '.json'
 
 # Training Parameters
-n_epochs = 1
+n_epochs = 30
 batch_size = 128
 learning_rate = 0.001
 

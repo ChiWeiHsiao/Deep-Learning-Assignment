@@ -10,12 +10,12 @@ params = {
   'conv_stride': 1,
   'pool_kernel': 7,
   'pool_stride': 2,
-  'dropout': 0.1, # i.e. keep_prob = 1-params['dropout']
-  'epoch': 20, #20 20 20
+  'dropout': 0.5, # for tf.nn.drropout's keep_prob
+  'epoch': 10, #10, 20 
   'batch_size': 128,
 }
 
-eid = '7'
+eid = 'try1'
 log = {
   'experiment_id': eid,
   'train_accuracy_per_epoch': [],
@@ -77,12 +77,12 @@ conv1 = add_conv(input_layer, 64, params['conv1_filter']) #[-1, 32, 32, 1] -> [-
 pool1 = add_maxpool(conv1) #[-1, 32, 32, 64] -> [-1, 16, 16, 64] (if stride=2)
 lrn1 = add_lrn(pool1)
 
-conv2 = add_conv(lrn1, 64, params['conv2_filter']) #[-1, 16, 16, 64] -> [-1, 16, 16, 64]
-pool2 = add_maxpool(conv2)  #[-1, 16, 16, 64] -> [-1, 8, 8, 64]
+conv2 = add_conv(lrn1, 128, params['conv2_filter']) #[-1, 16, 16, 128] -> [-1, 16, 16, 128]
+pool2 = add_maxpool(conv2)  #[-1, 16, 16, 128] -> [-1, 8, 8, 128]
 lrn2 = add_lrn(pool2)
-flatten = tf.contrib.layers.flatten(lrn2) #[-1, 8, 8, 64] -> [-1, 8*8*64 = 4096] 
+flatten = tf.contrib.layers.flatten(lrn2) #[-1, 8, 8, 128] -> [-1, 8*8*128 = 4096] 
 
-fc1 = add_fully(flatten, 384) #[-1, 8*8*64 = 8192] -> [-1, 384]
+fc1 = add_fully(flatten, 384) #[-1, 8*8*128] -> [-1, 384]
 fc1_drop = tf.nn.dropout(fc1, params['dropout'])
 # Output: no sofmax, apply softmax in cost funct 
 y_predict = add_fully(fc1_drop, 10) #[-1, 384] -> [-1, 10]
@@ -172,8 +172,8 @@ with tf.Session() as sess:
     if epoch == int(params['epoch'] / 2):
       extract_multiple_featuremaps(sess, first_image, first_label, name='feature_map_0')
   # Save the model
-  save_path = saver.save(sess, "./model.ckpt")
-  print("Model saved in file: %s" % save_path)
+  save_path = saver.save(sess, 'models/%s.ckpt' % eid)
+  print('Model saved in file: %s' % save_path)
 
 
   # show one predict sample

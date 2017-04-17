@@ -2,8 +2,9 @@ import matplotlib.pyplot as plt
 import json
 import numpy as np
 
-id = 'L1_1'
-print('Experiment ',id)
+
+id = 'dropout1'
+print('Expriment ',id)
 print(id)
 n_layers = 3
 
@@ -41,8 +42,8 @@ def plot_accuracy(figure, title):
   plt.xlabel('Number of epochs')
   plt.ylabel('Accuracy')
   plt.legend()
-  plt.text(right/2, top-top/4.5, 'Final Train Accuracy = {:.2f}%'.format(100*train_accuracy[-1]), fontsize=10, color='green')
-  plt.text(right/2, top-top/6,  'Final Test Accuracy  = {:.2f}%'.format(100*test_accuracy[-1]), fontsize=10, color='green')
+  plt.text(right/2, top-top/6, 'Final Train Accuracy = {:.2f}%'.format(100*train_accuracy[-1]), fontsize=10, color='green')
+  plt.text(right/2, top-top/4.5,  'Final Test Accuracy  = {:.2f}%'.format(100*test_accuracy[-1]), fontsize=10, color='green')
   plt.savefig(figure+'.png')
 
 # Show weights histogram
@@ -86,10 +87,10 @@ def count_exact_zero(weights):
 if __name__ == '__main__':
   count_exact_zero(weights)
 
-  #plot_accuracy('acc_'+id, 'learning curve')
+  plot_accuracy('acc_'+id, 'learning curve')
 
-  '''
+  
   plot_hist_all('hist_all_'+id, 'hisltogram_all', weights)
   for i in range(len(weights)):
     plot_hist('hist_h'+str(i+1)+'_'+id, 'hisltogram_h'+str(i+1), weights[i])
-'''
+
