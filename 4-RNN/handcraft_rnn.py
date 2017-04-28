@@ -11,7 +11,7 @@ n_epochs = 5
 batch_size = 32
 show_steps = 50 # show statistics after train 50 batches
 learning_rate = 0.001
-n_hidden = 2
+n_hidden = 2 # number of hidden nodes
 
 log = {
   'experiment_id': eid,
@@ -44,21 +44,22 @@ train_dataset = Dataset(X_train, Y_train, batch_size)
 
 
 def RNN(x_sequence, n_hidden):
+  state = tf.Variable(tf.zeros([batch_size, n_hidden]))
+
   U = tf.Variable(tf.random_normal([n_input, n_hidden]))
   W = tf.Variable(tf.random_normal([n_hidden, n_hidden]))
-  hidden_bias = tf.Variable(tf.random_normal([n_hidden]))
+  hidden_bias = tf.Variable(tf.random_normal([batch_size, n_hidden]))
   for i in range(n_time_steps):
-    hidden_state = tf.matmul(x_sequence[i], U) + tf.matmul(hidden_state, W) + hidden_bias
+    state = tf.matmul(x_sequence[i], U) + tf.matmul(state, W) + hidden_bias
   V = tf.Variable(tf.random_normal([n_hidden, n_classes]))
-  output_bias = tf.Variable(tf.random_normal([n_classes]))
-  output = tf.matmul(hidden_state, V) + output_bias
-  # use the last output of rnn cell to compute cost function
+  output_bias = tf.Variable(tf.random_normal([batch_size, n_classes]))
+  output = tf.matmul(state, V) + output_bias
   return output
 
 #### Define RNN model ####
 # Graph input
-x = tf.placeholder('float', [None, n_time_steps, n_input])
-y = tf.placeholder('float', [None, n_classes])
+x = tf.placeholder('float', [batch_size, n_time_steps, n_input])
+y = tf.placeholder('float', [batch_size, n_classes])
 
 # Unstack to get a list of 'n_time_steps' tensors of shape (batch_size, n_input)
 x_sequence = tf.unstack(x, n_time_steps, 1)
@@ -82,24 +83,22 @@ def train(sess, features, labels, batch_size):
   return
 
 def calculate_accuracy(sess, features, labels):
-  feed_size = 500
-  iterations = int(features.shape[0] / feed_size)
+  iterations = int(features.shape[0] / batch_size)
   acc = 0.0
   p = 0
   for i in range(iterations):
-    acc += sess.run(accuracy, feed_dict={x: features[p:p+feed_size], y: labels[p:p+feed_size]}).tolist()
-    p += feed_size
+    acc += sess.run(accuracy, feed_dict={x: features[p:p+batch_size], y: labels[p:p+batch_size]}).tolist()
+    p += batch_size
   acc = acc /iterations
   return acc
 
 def calculate_loss(sess, features, labels):
-  feed_size = 500
-  iterations = int(features.shape[0] / feed_size)
+  iterations = int(features.shape[0] / batch_size)
   loss = 0.0
   p = 0
   for i in range(iterations):
-    loss += sess.run(cost, feed_dict={x: features[p:p+feed_size], y: labels[p:p+feed_size]}).tolist()
-    p += feed_size
+    loss += sess.run(cost, feed_dict={x: features[p:p+batch_size], y: labels[p:p+batch_size]}).tolist()
+    p += batch_size
   return loss
 
 def record_accuracy_and_loss(sess):
