@@ -5,7 +5,7 @@ from tensorflow.contrib import rnn
 import json
 from util import to_categorical, Dataset
 
-architecture = 'RNN'
+architecture = 'LSTM'
 eid = 'handcraft_' + architecture + '_1'
 n_epochs = 5
 batch_size = 32
@@ -43,27 +43,72 @@ Y_test = to_categorical(Y_test, 2)
 train_dataset = Dataset(X_train, Y_train, batch_size)
 
 
+#### Define RNN Models ####
 def RNN(x_sequence, n_hidden):
   state = tf.Variable(tf.zeros([batch_size, n_hidden]))
-
   U = tf.Variable(tf.random_normal([n_input, n_hidden]))
   W = tf.Variable(tf.random_normal([n_hidden, n_hidden]))
   hidden_bias = tf.Variable(tf.random_normal([batch_size, n_hidden]))
-  for i in range(n_time_steps):
-    state = tf.matmul(x_sequence[i], U) + tf.matmul(state, W) + hidden_bias
-  V = tf.Variable(tf.random_normal([n_hidden, n_classes]))
-  output_bias = tf.Variable(tf.random_normal([batch_size, n_classes]))
-  output = tf.matmul(state, V) + output_bias
+  # Unroll timesteps
+  for x in x_sequence:
+    state = tf.matmul(x, U) + tf.matmul(state, W) + hidden_bias
+    # (batch, n_input)x(n_input, n_hidden) + (batch_size, n_hidden)x(n_hidden, n_hidden) + (batch_size, n_hidden)
+  return state
+
+
+def LSTM(x_sequence, n_hidden):
+  # Parameters
+  # forgate gate
+  fb = tf.Variable(tf.random_normal([batch_size, n_hidden]))
+  fU = tf.Variable(tf.random_normal([n_input, n_hidden]))
+  fW = tf.Variable(tf.random_normal([n_hidden, n_hidden]))
+  # internal state
+  sb = tf.Variable(tf.random_normal([batch_size, n_hidden]))
+  sU = tf.Variable(tf.random_normal([n_input, n_hidden]))
+  sW = tf.Variable(tf.random_normal([n_hidden, n_hidden]))
+  # external input gate
+  ib = tf.Variable(tf.random_normal([batch_size, n_hidden]))
+  iU = tf.Variable(tf.random_normal([n_input, n_hidden]))
+  iW = tf.Variable(tf.random_normal([n_hidden, n_hidden]))
+  # output gate
+  ob = tf.Variable(tf.random_normal([batch_size, n_hidden]))
+  oU = tf.Variable(tf.random_normal([n_input, n_hidden]))
+  oW = tf.Variable(tf.random_normal([n_hidden, n_hidden]))
+
+  def lstm_cell(x, output, state):
+    # (batch, n_input)x(n_input, n_hidden) + (batch_size, n_hidden)x(n_hidden, n_hidden) + (batch_size, n_hidden)
+    forget_gate = tf.sigmoid(tf.matmul(x, fU) + tf.matmul(output, fW) + fb)
+    input_gate = tf.sigmoid(tf.matmul(x, iU) + tf.matmul(output, iW) + ib)
+    state_update = tf.sigmoid(tf.matmul(x, sU) + tf.matmul(output, sW) + sb)
+    state = tf.multiply(state, forget_gate) + tf.multiply(input_gate, state_update)
+    output_gate = tf.sigmoid(tf.matmul(x, oU) + tf.matmul(output, oW) + ob)
+    output = tf.multiply( tf.tanh(state), output_gate)
+    return output, state 
+  
+  # Unroll timesteps
+  state = tf.Variable(tf.zeros([batch_size, n_hidden]))
+  output = tf.Variable(tf.zeros([batch_size, n_hidden]))
+  for x in x_sequence:
+    output, state = lstm_cell(x, output, state) 
   return output
 
-#### Define RNN model ####
+
+#### Define whole model ####
 # Graph input
 x = tf.placeholder('float', [batch_size, n_time_steps, n_input])
 y = tf.placeholder('float', [batch_size, n_classes])
 
 # Unstack to get a list of 'n_time_steps' tensors of shape (batch_size, n_input)
 x_sequence = tf.unstack(x, n_time_steps, 1)
-predict = RNN(x_sequence, n_hidden)
+if architecture == 'RNN':
+  rnn_output = RNN(x_sequence, n_hidden)
+elif architecture == 'LSTM':
+  rnn_output = LSTM(x_sequence, n_hidden)
+
+# add a fully connected layer without activation after rnn
+weight = tf.Variable(tf.random_normal([n_hidden, n_classes]))
+bias = tf.Variable(tf.random_normal([batch_size, n_classes]))
+predict = tf.matmul(rnn_output, weight) + bias
 
 # Define cost and optimizer
 cost = tf.reduce_mean( tf.nn.softmax_cross_entropy_with_logits(labels=y, logits=predict) )
@@ -73,15 +118,9 @@ train_step = tf.train.AdamOptimizer(learning_rate).minimize(cost)
 correct_prediction = tf.equal(tf.argmax(predict,1), tf.argmax(y,1))
 accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 
-#### Define fuctions with use of tf session ####
-def train(sess, features, labels, batch_size):
-  iterations = int(n_sequences / batch_size)
-  p = 0
-  for i in range(iterations):
-    sess.run(train_step, feed_dict={x: features[p:p+batch_size], y: labels[p:p+batch_size]})
-    p += batch_size
-  return
 
+
+#### Define fuctions with use of tf session ####
 def calculate_accuracy(sess, features, labels):
   iterations = int(features.shape[0] / batch_size)
   acc = 0.0
