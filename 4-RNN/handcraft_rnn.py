@@ -184,8 +184,8 @@ def record_accuracy_and_loss(sess):
   print('train_loss = % .4f, test_loss = %.4f'  %(train_loss, test_loss))
   return
   
-saver = tf.train.Saver()
 
+saver = tf.train.Saver()
 # Launch the graph
 with tf.Session() as sess:
   init = tf.global_variables_initializer()
