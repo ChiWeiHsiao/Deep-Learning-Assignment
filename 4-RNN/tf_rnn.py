@@ -5,13 +5,13 @@ from tensorflow.contrib import rnn
 import json
 from util import to_categorical, Dataset
 
-architecture = 'RNN'
+architecture = 'GRU'
 eid = 'tf_' + architecture + '_2'
 n_epochs = 5
 batch_size = 32
 show_steps = 50 # show statistics after train 50 batches
 learning_rate = 0.001
-n_hidden = 2
+n_hidden = 10
 
 log = {
   'experiment_id': eid,
@@ -19,6 +19,7 @@ log = {
   'test_accuracy': [],
   'train_loss': [],
   'test_loss': [],
+  'n_hidden': n_hidden,
 }
 logfile = 'statistics/'+eid+'.json'
 print('id: ', eid)
@@ -51,7 +52,6 @@ def RNN(x_sequence, n_hidden):
   bias = tf.Variable(tf.random_normal([n_classes]))
   return tf.matmul(outputs[-1], weight) + bias
   
-
 def LSTM(x_sequence, n_hidden):
   cell = rnn.BasicLSTMCell(n_hidden, forget_bias=1.0)
   outputs, states = rnn.static_rnn(cell, x_sequence, dtype=tf.float32)
@@ -83,7 +83,6 @@ elif(architecture == 'LSTM'):
 elif(architecture == 'GRU'):
   predict = GRU(x_sequence, n_hidden)
 
-
 # Define cost and optimizer
 cost = tf.reduce_mean( tf.nn.softmax_cross_entropy_with_logits(labels=y, logits=predict) )
 train_step = tf.train.AdamOptimizer(learning_rate).minimize(cost)
@@ -92,15 +91,8 @@ train_step = tf.train.AdamOptimizer(learning_rate).minimize(cost)
 correct_prediction = tf.equal(tf.argmax(predict,1), tf.argmax(y,1))
 accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 
-#### Define fuctions with use of tf session ####
-def train(sess, features, labels, batch_size):
-  iterations = int(n_sequences / batch_size)
-  p = 0
-  for i in range(iterations):
-    sess.run(train_step, feed_dict={x: features[p:p+batch_size], y: labels[p:p+batch_size]})
-    p += batch_size
-  return
 
+#### Define fuctions with use of tf session ####
 def calculate_accuracy(sess, features, labels):
   feed_size = 500
   iterations = int(features.shape[0] / feed_size)
@@ -135,8 +127,8 @@ def record_accuracy_and_loss(sess):
   print('train_loss = % .4f, test_loss = %.4f'  %(train_loss, test_loss))
   return
   
-saver = tf.train.Saver()
 
+saver = tf.train.Saver()
 # Launch the graph
 with tf.Session() as sess:
   init = tf.global_variables_initializer()

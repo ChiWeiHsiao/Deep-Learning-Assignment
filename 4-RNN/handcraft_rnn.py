@@ -5,13 +5,13 @@ from tensorflow.contrib import rnn
 import json
 from util import to_categorical, Dataset
 
-architecture = 'GRU'
-eid = 'handcraft_' + architecture + '_1'
+architecture = 'RNN'
+eid = 'handcraft_' + architecture + '_2'
 n_epochs = 5
 batch_size = 32
 show_steps = 50 # show statistics after train 50 batches
 learning_rate = 0.001
-n_hidden = 2 # number of hidden nodes
+n_hidden = 10 # number of hidden nodes
 
 log = {
   'experiment_id': eid,
@@ -19,6 +19,7 @@ log = {
   'test_accuracy': [],
   'train_loss': [],
   'test_loss': [],
+  'n_hidden': n_hidden,
 }
 logfile = 'statistics/'+eid+'.json'
 print('id: ', eid)
@@ -184,8 +185,8 @@ def record_accuracy_and_loss(sess):
   print('train_loss = % .4f, test_loss = %.4f'  %(train_loss, test_loss))
   return
   
-saver = tf.train.Saver()
 
+saver = tf.train.Saver()
 # Launch the graph
 with tf.Session() as sess:
   init = tf.global_variables_initializer()
