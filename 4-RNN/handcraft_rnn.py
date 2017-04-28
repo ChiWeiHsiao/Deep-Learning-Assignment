@@ -5,7 +5,7 @@ from tensorflow.contrib import rnn
 import json
 from util import to_categorical, Dataset
 
-architecture = 'LSTM'
+architecture = 'GRU'
 eid = 'handcraft_' + architecture + '_1'
 n_epochs = 5
 batch_size = 32
@@ -80,9 +80,9 @@ def LSTM(x_sequence, n_hidden):
     forget_gate = tf.sigmoid(tf.matmul(x, fU) + tf.matmul(output, fW) + fb)
     input_gate = tf.sigmoid(tf.matmul(x, iU) + tf.matmul(output, iW) + ib)
     state_update = tf.sigmoid(tf.matmul(x, sU) + tf.matmul(output, sW) + sb)
-    state = tf.multiply(state, forget_gate) + tf.multiply(input_gate, state_update)
+    state = state * forget_gate + input_gate * state_update
     output_gate = tf.sigmoid(tf.matmul(x, oU) + tf.matmul(output, oW) + ob)
-    output = tf.multiply( tf.tanh(state), output_gate)
+    output = tf.tanh(state) * output_gate
     return output, state 
   
   # Unroll timesteps
@@ -91,6 +91,35 @@ def LSTM(x_sequence, n_hidden):
   for x in x_sequence:
     output, state = lstm_cell(x, output, state) 
   return output
+
+def GRU(x_sequence, n_hidden):
+  # Parameters
+  # update gate
+  ub = tf.Variable(tf.random_normal([batch_size, n_hidden]))
+  uU = tf.Variable(tf.random_normal([n_input, n_hidden]))
+  uW = tf.Variable(tf.random_normal([n_hidden, n_hidden]))
+  # reset state
+  rb = tf.Variable(tf.random_normal([batch_size, n_hidden]))
+  rU = tf.Variable(tf.random_normal([n_input, n_hidden]))
+  rW = tf.Variable(tf.random_normal([n_hidden, n_hidden]))
+  # state
+  b = tf.Variable(tf.random_normal([batch_size, n_hidden]))
+  U = tf.Variable(tf.random_normal([n_input, n_hidden]))
+  W = tf.Variable(tf.random_normal([n_hidden, n_hidden]))
+
+  def gru_cell(x, state):
+    update_gate = tf.sigmoid(tf.matmul(x, uU) + tf.matmul(state, uW) + ub)
+    reset_gate = tf.sigmoid(tf.matmul(x, rU) + tf.matmul(state, rW) + rb)
+    state_update = tf.sigmoid(tf.matmul(x, U) + tf.matmul(reset_gate, W) * state + b)
+    state = update_gate * state + (1-update_gate) * state_update
+    return state 
+  
+  # Unroll timesteps
+  state = tf.Variable(tf.zeros([batch_size, n_hidden]))
+  for x in x_sequence:
+    state = gru_cell(x, state) 
+  return state
+
 
 
 #### Define whole model ####
@@ -104,6 +133,8 @@ if architecture == 'RNN':
   rnn_output = RNN(x_sequence, n_hidden)
 elif architecture == 'LSTM':
   rnn_output = LSTM(x_sequence, n_hidden)
+elif architecture == 'GRU':
+  rnn_output = GRU(x_sequence, n_hidden)
 
 # add a fully connected layer without activation after rnn
 weight = tf.Variable(tf.random_normal([n_hidden, n_classes]))
