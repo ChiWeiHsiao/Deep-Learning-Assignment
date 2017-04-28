@@ -1,4 +1,5 @@
 *.txt
+*.png
 data/
 log/
 plot/*.json
@@ -7,4 +8,5 @@ plot/*.json
 4-RNN/statistics/
 3-CNN/models/
 4-RNN/models/
+4-RNN/images/
 __pycache__/
