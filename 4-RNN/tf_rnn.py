@@ -5,8 +5,8 @@ from tensorflow.contrib import rnn
 import json
 from util import to_categorical, Dataset
 
-architecture = 'GRU'
-eid = 'tf_' + architecture + '_1'
+architecture = 'RNN'
+eid = 'tf_' + architecture + '_2'
 n_epochs = 5
 batch_size = 32
 show_steps = 50 # show statistics after train 50 batches
@@ -47,19 +47,26 @@ def RNN(x_sequence, n_hidden):
   cell = rnn.BasicRNNCell(n_hidden)
   outputs, states = rnn.static_rnn(cell, x_sequence, dtype=tf.float32)
   # use the last output of rnn cell to compute cost function
-  return outputs[-1]
+  weight = tf.Variable(tf.random_normal([n_hidden, n_classes]))
+  bias = tf.Variable(tf.random_normal([n_classes]))
+  return tf.matmul(outputs[-1], weight) + bias
+  
 
 def LSTM(x_sequence, n_hidden):
   cell = rnn.BasicLSTMCell(n_hidden, forget_bias=1.0)
   outputs, states = rnn.static_rnn(cell, x_sequence, dtype=tf.float32)
   # use the last output of rnn cell to compute cost function
-  return outputs[-1]
+  weight = tf.Variable(tf.random_normal([n_hidden, n_classes]))
+  bias = tf.Variable(tf.random_normal([n_classes]))
+  return tf.matmul(outputs[-1], weight) + bias
 
 def GRU(x_sequence, n_hidden):
   cell = rnn.GRUCell(n_hidden)
   outputs, states = rnn.static_rnn(cell, x_sequence, dtype=tf.float32)
   # use the last output of rnn cell to compute cost function
-  return outputs[-1]
+  weight = tf.Variable(tf.random_normal([n_hidden, n_classes]))
+  bias = tf.Variable(tf.random_normal([n_classes]))
+  return tf.matmul(outputs[-1], weight) + bias
 
 
 #### Define RNN model ####
