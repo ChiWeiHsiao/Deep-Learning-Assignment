@@ -6,7 +6,7 @@ import json
 from util import to_categorical, Dataset
 
 architecture = 'GRU'
-eid = 'tf_' + architecture + '_2'
+eid = 'tf_' + architecture + '_0'
 n_epochs = 5
 batch_size = 32
 show_steps = 50 # show statistics after train 50 batches
@@ -32,11 +32,11 @@ X_train = imdb['X_train'] #(25000, 80, 128)
 Y_train = imdb['y_train'] #(25000, ) => 0 or 1 
 X_test  = imdb['X_test']
 Y_test  = imdb['y_test']
-n_sequences = X_train.shape[0]
+n_samples = X_train.shape[0]
 n_time_steps = X_train.shape[1]
 n_input = X_train.shape[2]
 n_classes = 2
-n_iters = int(n_epochs * n_sequences / batch_size)
+n_iters = int(n_epochs * n_samples / batch_size)
 # transform to one-hot
 Y_train = to_categorical(Y_train, 2)
 Y_test = to_categorical(Y_test, 2)
@@ -143,11 +143,11 @@ with tf.Session() as sess:
     next_x, next_y = train_dataset.next_batch()
     sess.run(train_step, feed_dict={x: next_x, y: next_y})
     # Record accuracy and loss
-    if(it % show_steps == 0):
+    if it % show_steps == 0:
       print('Iterations %4d:\t' %(it+1) , end="")
       record_accuracy_and_loss(sess)
     # Shuffle data once for each epoch
-    if(it % batch_size == 0):
+    if it % batch_size == 0:
       train_dataset.shuffle()
     
   # Save the model

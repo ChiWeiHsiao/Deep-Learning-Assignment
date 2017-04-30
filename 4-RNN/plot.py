@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import json
 import numpy as np
 
-id = 'tf_RNN_2'
+id = 'handcraft_RNN_3'
 filename = 'statistics/'+id
 filename += '.json'
 
