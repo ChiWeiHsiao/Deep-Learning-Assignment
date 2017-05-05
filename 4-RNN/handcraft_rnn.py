@@ -5,12 +5,13 @@ from tensorflow.contrib import rnn
 import json
 from util import to_categorical, Dataset
 
-architecture = 'RNN'
-eid = 'handcraft_' + architecture + '_3'
-n_epochs = 5
+architecture = 'LSTM'
+optimizer = 'ADAM' # 'ADAM' or 'SGD'
+eid = 'tf_' + architecture + '_' + optimizer
+n_epochs = 4
 batch_size = 32
 show_steps = 50 # show statistics after train 50 batches
-learning_rate = 0.001
+init_learning_rate = 0.01
 n_hidden = 10 # number of hidden nodes
 
 log = {
@@ -47,12 +48,12 @@ train_dataset = Dataset(X_train, Y_train, batch_size)
 #### Define RNN Models ####
 def RNN(x_sequence, n_hidden):
   state = tf.Variable(tf.zeros([batch_size, n_hidden]))
-  U = tf.Variable(tf.random_normal([n_input, n_hidden], stddev=0.1))
-  W = tf.Variable(tf.random_normal([n_hidden, n_hidden], stddev=0.1))
-  hidden_bias = tf.Variable(tf.random_normal([batch_size, n_hidden], stddev=0.1))
+  U = tf.Variable(tf.random_normal([n_input, n_hidden], stddev=1))
+  W = tf.Variable(tf.random_normal([n_hidden, n_hidden], stddev=1))
+  hidden_bias = tf.Variable(tf.random_normal([batch_size, n_hidden], stddev=1))
   # Unroll timesteps
   for x in x_sequence:
-    state = tf.matmul(x, U) + tf.matmul(state, W) + hidden_bias
+    state =  tf.tanh(tf.matmul(x, U) + tf.matmul(state, W) + hidden_bias)
     # (batch, n_input)x(n_input, n_hidden) + (batch_size, n_hidden)x(n_hidden, n_hidden) + (batch_size, n_hidden)
   return state
 
@@ -144,7 +145,15 @@ predict = tf.matmul(rnn_output, weight) + bias
 
 # Define cost and optimizer
 cost = tf.reduce_mean( tf.nn.softmax_cross_entropy_with_logits(labels=y, logits=predict) )
-train_step = tf.train.AdamOptimizer(learning_rate).minimize(cost)
+
+if optimizer == 'ADAM':
+  adam_learning_rate = 0.001
+  train_step = tf.train.AdamOptimizer(adam_learning_rate).minimize(cost)
+# SGD with Exponentially decayed learning rate
+elif optimizer == 'SGD':
+  batch = tf.Variable(0, trainable=False)
+  learning_rate = tf.train.exponential_decay(init_learning_rate, batch*batch_size, 1000, 0.95, staircase=True)
+  train_step = tf.train.GradientDescentOptimizer(learning_rate).minimize(cost, global_step=batch)
 
 # Test the accuracy of trained DNN
 correct_prediction = tf.equal(tf.argmax(predict,1), tf.argmax(y,1))
