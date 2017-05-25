@@ -73,7 +73,7 @@ def extract_images(sess):
     image_id = randint(0, X_test.shape[0]-1)
     image = X_test[image_id]
     image = np.reshape(image, (1, )+image.shape)
-    log['original_image'].append(image)
+    log['original_image'].append(image.tolist())
     log['reconstruct_image'].append(sess.run( out, feed_dict={x: image}).tolist())
   return
   
