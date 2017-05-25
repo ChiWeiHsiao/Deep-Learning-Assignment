@@ -50,7 +50,7 @@ cost = tf.reduce_mean(tf.squared_difference(x, out))
 train_step = tf.train.AdamOptimizer(adam_learning_rate).minimize(cost)
 
 
-def calculate_loss(sess, inputs):
+def calculate_loss_sum(sess, inputs):
   iterations = int(inputs.shape[0] / batch_size)
   loss = 0.0
   p = 0
@@ -60,8 +60,8 @@ def calculate_loss(sess, inputs):
   return loss
 
 def record_loss(sess):
-  train_loss = calculate_loss(sess, X_train)
-  test_loss = calculate_loss(sess, X_test)
+  train_loss = calculate_loss_sum(sess, X_train) / X_train.shape[0]
+  test_loss = calculate_loss_sum(sess, X_test) / X_test.shape[0]
   log['train_loss'].append(train_loss)
   log['test_loss'].append(test_loss)
   print('train_loss = %15.4f, test_loss = %15.4f'  %(train_loss, test_loss))
