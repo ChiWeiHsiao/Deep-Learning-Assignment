@@ -73,8 +73,8 @@ x = tf.placeholder('float', [None, IMG_HEIGHT, IMG_WIDTH, IMG_CHANNEL])
 y_truth = tf.placeholder('float', [None, NUM_CLASS])
 input_layer = tf.reshape(x, shape=[-1, 32, 32, 3])
 
-conv1 = add_conv(input_layer, 64, params['conv1_filter']) #[-1, 32, 32, 1] -> [-1, 32, 32, 64]
-pool1 = add_maxpool(conv1) #[-1, 32, 32, 64] -> [-1, 16, 16, 64] (if stride=2)
+conv1 = add_conv(input_layer, 64, params['conv1_filter']) #[-1, 32, 32, 3] -> [-1, 32, 32, 64]
+pool1 = add_maxpool(conv1) #[-1, 32, 32, 64] -> [-1, 16, 16, 64] (stride=2)
 lrn1 = add_lrn(pool1)
 
 conv2 = add_conv(lrn1, 128, params['conv2_filter']) #[-1, 16, 16, 128] -> [-1, 16, 16, 128]
