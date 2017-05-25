@@ -6,7 +6,11 @@ plot/*.json
 2-Regularization/statistics/
 3-CNN/statistics/
 4-RNN/statistics/
+5-Autoencoder/statistics/
+6-GAN/statistics/
 3-CNN/models/
 4-RNN/models/
+5-Autoencoder/models/
+6-GAN/models/
 4-RNN/images/
 __pycache__/
