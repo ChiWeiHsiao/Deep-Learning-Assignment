@@ -156,7 +156,7 @@ with tf.Session() as sess:
       print('Iterations %4d:\t' %(it+1) , end="")
       record_accuracy_and_loss(sess)
     # Shuffle data once for each epoch
-    if it % batch_size == 0:
+    if it % int(n_iters/n_epochs) == 0:
       train_dataset.shuffle()
     
   # Save the model

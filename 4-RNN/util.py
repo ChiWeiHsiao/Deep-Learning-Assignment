@@ -18,7 +18,7 @@ class Dataset():
   def __init__(self, X, Y, batch_size):
     self.X = X
     self.Y = Y
-    self.X_batch, self.Y_batch = [], []
+    self.X, self.Y = shuffle(self.X, self.Y)
     self.batch_size = batch_size
     self.state = 0
     self.total_batch = int(X.shape[0] / batch_size)
