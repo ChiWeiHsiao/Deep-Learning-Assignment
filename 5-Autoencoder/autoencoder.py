@@ -40,11 +40,13 @@ def conv2d_transpose(x, out_channels, kernel, stride):
 # Graph input
 x = tf.placeholder('float', [None, IMG_HEIGHT, IMG_WIDTH, IMG_CHANNEL]) 
 # Encoding pass
-encode_conv = conv2d(x, out_channels=32, kernel=3, stride=2)
-code_layer = encode_conv
+encode_conv1 = conv2d(x, out_channels=32, kernel=3, stride=2)
+encode_conv2 = conv2d(encode_conv1, out_channels=64, kernel=3, stride=2)
+code_layer = encode_conv2
 # Decoding pass
-decode_conv = conv2d_transpose(code_layer, out_channels=3, kernel=3, stride=2)
-out = decode_conv
+decode_conv2 = conv2d_transpose(code_layer, out_channels=32, kernel=3, stride=2)
+decode_conv1 = conv2d_transpose(decode_conv2, out_channels=3, kernel=3, stride=2)
+out = decode_conv1
 # Define cost and optimizer
 cost = tf.reduce_mean(tf.squared_difference(x, out))
 train_step = tf.train.AdamOptimizer(adam_learning_rate).minimize(cost)
