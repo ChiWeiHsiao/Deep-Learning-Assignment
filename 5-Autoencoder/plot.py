@@ -49,11 +49,13 @@ def plot_loss(figure, title):
   right = len(train_loss)
   top = np.amax( train_loss )
   bottom = 0
+  # Build x axis
+  x_axis = [100*i for i in range(0, len(train_loss))] 
 
   plt.figure(figure)
   plt.title(title)
-  plt.plot(train_loss, label='train')
-  plt.plot(test_loss, label='test')
+  plt.plot(x_axis, train_loss, label='train')
+  plt.plot(x_axis, test_loss, label='test')
   plt.xlabel('Number of iterations')
   plt.ylabel('Least Square Loss')
   plt.legend()
@@ -65,7 +67,7 @@ def plot_loss(figure, title):
 if __name__ == '__main__':
   loss_filename = str(experiment_id)+'_loss'
   plot_loss(loss_filename, 'learning curve')
-  for i in range(len(original_image)):
-    draw_img(original_image[i], 'original_image_{}'.format(i))
-    draw_img(reconstruct_image[i], 'reconstruct_image_{}'.format(i))
+  #for i in range(len(original_image)):
+    #draw_img(original_image[i], 'original_image_{}'.format(i))
+    #draw_img(reconstruct_image[i], 'reconstruct_image_{}'.format(i))
   
