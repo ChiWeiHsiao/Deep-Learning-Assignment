@@ -37,6 +37,14 @@ def conv2d_transpose(x, out_channels, kernel, stride):
   return tf.contrib.layers.conv2d_transpose(x, out_channels, kernel, stride, activation_fn=tf.nn.relu, 
       biases_initializer=tf.constant_initializer(0.), weights_initializer=tf.random_normal_initializer, padding='SAME')
 
+def maxpool_2x2(x):
+    return tf.contrib.layers.max_pool2d(x, kernel_size=3, stride=2, padding='SAME') 
+
+def unpool_2x2(x):
+    duplicate_row = tf.concat_v2([x, x], 2)
+    duplicate_col = tf.concat_v2([duplicate_row, duplicate_row], 3)
+    return duplicate_col
+
 # Graph input
 x = tf.placeholder('float', [None, IMG_HEIGHT, IMG_WIDTH, IMG_CHANNEL]) 
 # Encoding pass
