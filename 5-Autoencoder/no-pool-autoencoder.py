@@ -4,7 +4,7 @@ import json
 from util import Dataset, load_data
 from random import randint
 
-eid = 'duplicate-pool'
+eid = 'nopool'
 n_epochs = 5
 batch_size = 32
 show_steps = 100
@@ -56,15 +56,11 @@ def unpool_2x2_nearest_neighbor(x, out_shape):
 x = tf.placeholder('float', [None, IMG_HEIGHT, IMG_WIDTH, IMG_CHANNEL])
 # Encoding pass
 encode_conv1 = conv2d(x, out_channels=16, kernel=3, stride=1)
-encode_pool1 = maxpool_2x2(encode_conv1)
-encode_conv2 = conv2d(encode_pool1, out_channels=32, kernel=3, stride=1)
-encode_pool2 = maxpool_2x2(encode_conv2)
-code_layer = encode_pool2
+encode_conv2 = conv2d(encode_conv1, out_channels=32, kernel=3, stride=1)
+code_layer = encode_conv2
 # Decoding pass
-decode_pool2 = unpool_2x2_duplicate(code_layer, [-1, 14, 14, 32])
-decode_conv2 = conv2d_transpose(decode_pool2, out_channels=16, kernel=3, stride=1)
-decode_pool1 = unpool_2x2_duplicate(decode_conv2, [-1, 28, 28, 16])
-decode_conv1 = conv2d_transpose(decode_pool1, out_channels=3, kernel=3, stride=1)
+decode_conv2 = conv2d_transpose(code_layer, out_channels=16, kernel=3, stride=1)
+decode_conv1 = conv2d_transpose(decode_conv2, out_channels=3, kernel=3, stride=1)
 out = decode_conv1
 #print("unconv layer: {}".format(decode_conv1.get_shape()))
 
@@ -121,8 +117,8 @@ with tf.Session() as sess:
       train_dataset.shuffle()
     
   # Save the model
-  save_path = saver.save(sess, 'models/%s.ckpt' % eid)
-  print('Model saved in file: %s' % save_path)
+  #save_path = saver.save(sess, 'models/%s.ckpt' % eid)
+  #print('Model saved in file: %s' % save_path)
 
 
 # Print weights and accuracy log to json file
