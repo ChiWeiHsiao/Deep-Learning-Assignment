@@ -4,9 +4,9 @@ import json
 from util import Dataset, load_data
 from random import randint
 
-eid = 'try'
-n_epochs = 1
-batch_size = 32
+eid = 'pool3-conv32-batch128'
+n_epochs = 8
+batch_size = 128
 show_steps = 100
 adam_learning_rate = 0.001
 log = {
@@ -41,20 +41,27 @@ def maxpool_2x2(x):
     return tf.contrib.layers.max_pool2d(x, kernel_size=3, stride=2, padding='SAME') 
 
 def unpool_2x2(x):
-    duplicate_row = tf.concat_v2([x, x], 2)
-    duplicate_col = tf.concat_v2([duplicate_row, duplicate_row], 3)
+    duplicate_row = tf.concat([x, x], 1)
+    duplicate_col = tf.concat([duplicate_row, duplicate_row], 2)
     return duplicate_col
 
 # Graph input
-x = tf.placeholder('float', [None, IMG_HEIGHT, IMG_WIDTH, IMG_CHANNEL]) 
+x = tf.placeholder('float', [None, IMG_HEIGHT, IMG_WIDTH, IMG_CHANNEL])
 # Encoding pass
 encode_conv1 = conv2d(x, out_channels=32, kernel=3, stride=2)
-encode_conv2 = conv2d(encode_conv1, out_channels=64, kernel=3, stride=2)
-code_layer = encode_conv2
+print("encode_conv: {}".format(encode_conv1.get_shape()))
+encode_pool1 = maxpool_2x2(encode_conv1)
+print("encode_pool: {}".format(encode_pool1.get_shape()))
+code_layer = encode_pool1
+print("code layer: {}".format(code_layer.get_shape()))
+
 # Decoding pass
-decode_conv2 = conv2d_transpose(code_layer, out_channels=32, kernel=3, stride=2)
-decode_conv1 = conv2d_transpose(decode_conv2, out_channels=3, kernel=3, stride=2)
-out = decode_conv1
+decode_conv1 = conv2d_transpose(code_layer, out_channels=3, kernel=3, stride=2)
+print("unconv layer: {}".format(decode_conv1.get_shape()))
+
+decode_pool1 = unpool_2x2(decode_conv1)
+print("unpool layer: {}".format(decode_pool1.get_shape()))
+out = decode_pool1
 # Define cost and optimizer
 cost = tf.reduce_mean(tf.squared_difference(x, out))
 train_step = tf.train.AdamOptimizer(adam_learning_rate).minimize(cost)
