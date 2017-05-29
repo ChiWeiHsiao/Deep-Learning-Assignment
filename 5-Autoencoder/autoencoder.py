@@ -4,9 +4,9 @@ import json
 from util import Dataset, load_data
 from random import randint
 
-eid = 'pool3-conv32-batch128'
-n_epochs = 8
-batch_size = 128
+eid = 'pool3-conv32-batch32-nearest'
+n_epochs = 10
+batch_size = 32
 show_steps = 100
 adam_learning_rate = 0.001
 log = {
@@ -38,17 +38,23 @@ def conv2d_transpose(x, out_channels, kernel, stride):
       biases_initializer=tf.constant_initializer(0.), weights_initializer=tf.random_normal_initializer, padding='SAME')
 
 def maxpool_2x2(x):
-    return tf.contrib.layers.max_pool2d(x, kernel_size=3, stride=2, padding='SAME') 
+    return tf.contrib.layers.max_pool2d(x, kernel_size=2, stride=2, padding='SAME') 
+    #tf.nn.max_pool_with_argmax(x, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME', Targmax=tf.int32)
 
-def unpool_2x2(x):
-    duplicate_row = tf.concat([x, x], 1)
-    duplicate_col = tf.concat([duplicate_row, duplicate_row], 2)
-    return duplicate_col
+def unpool_2x2_duplicate(x, out_shape):
+    duplicate = tf.concat([x, x], 3)
+    duplicate = tf.concat([duplicate, duplicate], 2)
+    out = tf.reshape(duplicate, out_shape)
+    return out
+
+def unpool_2x2_nearest_neighbor(x, out_shape):
+    return tf.image.resize_nearest_neighbor(x, tf.stack([out_shape[1], out_shape[2]]))
+
 
 # Graph input
 x = tf.placeholder('float', [None, IMG_HEIGHT, IMG_WIDTH, IMG_CHANNEL])
 # Encoding pass
-encode_conv1 = conv2d(x, out_channels=32, kernel=3, stride=2)
+encode_conv1 = conv2d(x, out_channels=32, kernel=3, stride=1)
 print("encode_conv: {}".format(encode_conv1.get_shape()))
 encode_pool1 = maxpool_2x2(encode_conv1)
 print("encode_pool: {}".format(encode_pool1.get_shape()))
@@ -56,12 +62,12 @@ code_layer = encode_pool1
 print("code layer: {}".format(code_layer.get_shape()))
 
 # Decoding pass
-decode_conv1 = conv2d_transpose(code_layer, out_channels=3, kernel=3, stride=2)
-print("unconv layer: {}".format(decode_conv1.get_shape()))
-
-decode_pool1 = unpool_2x2(decode_conv1)
+decode_pool1 = unpool_2x2_nearest_neighbor(code_layer, [-1, 28, 28, 32])
 print("unpool layer: {}".format(decode_pool1.get_shape()))
-out = decode_pool1
+
+decode_conv1 = conv2d_transpose(decode_pool1, out_channels=3, kernel=3, stride=1)
+print("unconv layer: {}".format(decode_conv1.get_shape()))
+out = decode_conv1
 # Define cost and optimizer
 cost = tf.reduce_mean(tf.squared_difference(x, out))
 train_step = tf.train.AdamOptimizer(adam_learning_rate).minimize(cost)
@@ -115,8 +121,8 @@ with tf.Session() as sess:
       train_dataset.shuffle()
     
   # Save the model
-  save_path = saver.save(sess, 'models/%s.ckpt' % eid)
-  print('Model saved in file: %s' % save_path)
+  #save_path = saver.save(sess, 'models/%s.ckpt' % eid)
+  #print('Model saved in file: %s' % save_path)
 
 
 # Print weights and accuracy log to json file

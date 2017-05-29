@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import json
 import numpy as np
 
-experiment_id = 'try-conv1'
+experiment_id = 'pool3-conv32-batch32-deconv-first'
 filename = experiment_id
 jsonfile = 'statistics/'+filename+'.json'
 
@@ -67,7 +67,7 @@ def plot_loss(figure, title):
 if __name__ == '__main__':
   loss_filename = str(experiment_id)+'_loss'
   plot_loss(loss_filename, 'learning curve')
-  #for i in range(len(original_image)):
-    #draw_img(original_image[i], 'original_image_{}'.format(i))
-    #draw_img(reconstruct_image[i], 'reconstruct_image_{}'.format(i))
+  for i in range(len(original_image)):
+    draw_img(original_image[i], 'original_image_{}'.format(i))
+    draw_img(reconstruct_image[i], 'reconstruct_image_{}'.format(i))
   
