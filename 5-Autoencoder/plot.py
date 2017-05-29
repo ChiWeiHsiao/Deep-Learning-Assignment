@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import json
 import numpy as np
 
-experiment_id = 'try'
+experiment_id = 'try-conv1'
 filename = experiment_id
 jsonfile = 'statistics/'+filename+'.json'
 
@@ -59,8 +59,8 @@ def plot_loss(figure, title):
   plt.xlabel('Number of iterations')
   plt.ylabel('Least Square Loss')
   plt.legend()
-  plt.text(right/2, top-top/6, 'Final Train loss = {:.2f}'.format(100*train_loss[-1]), fontsize=10, color='green')
-  plt.text(right/2, top-top/4.5,  'Final Test loss  = {:.2f}'.format(100*test_loss[-1]), fontsize=10, color='green')
+  plt.text(right/2, top-top/6, 'Final Train loss = {:.2f}'.format(train_loss[-1]), fontsize=10, color='green')
+  plt.text(right/2, top-top/4.5,  'Final Test loss  = {:.2f}'.format(test_loss[-1]), fontsize=10, color='green')
   plt.savefig(figure+'.png')
 
 
