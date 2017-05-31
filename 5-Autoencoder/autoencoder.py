@@ -1,10 +1,11 @@
 import numpy as np
+import os
 import tensorflow as tf
 import json
 from util import Dataset, load_data
 from random import randint
 
-eid = 'duplicate-pool'
+eid = 'pool-duplicate'
 n_epochs = 5
 batch_size = 32
 show_steps = 100
@@ -32,11 +33,11 @@ train_dataset = Dataset(X_train, batch_size)
 
 def conv2d(x, out_channels, kernel, stride):
   return tf.contrib.layers.conv2d(x, out_channels, kernel, stride, activation_fn=tf.nn.relu, 
-      biases_initializer=tf.constant_initializer(0.), weights_initializer=tf.random_normal_initializer, padding='SAME')
+      biases_initializer=tf.constant_initializer(0.), weights_initializer=tf.contrib.layers.xavier_initializer_conv2d(uniform=False), padding='SAME')
 
 def conv2d_transpose(x, out_channels, kernel, stride):
   return tf.contrib.layers.conv2d_transpose(x, out_channels, kernel, stride, activation_fn=tf.nn.relu, 
-      biases_initializer=tf.constant_initializer(0.), weights_initializer=tf.random_normal_initializer, padding='SAME')
+      biases_initializer=tf.constant_initializer(0.), weights_initializer=tf.contrib.layers.xavier_initializer_conv2d(uniform=False), padding='SAME')
 
 def maxpool_2x2(x):
     return tf.contrib.layers.max_pool2d(x, kernel_size=2, stride=2, padding='SAME') 
@@ -106,8 +107,7 @@ saver = tf.train.Saver()
 with tf.Session() as sess:
   init = tf.global_variables_initializer()
   sess.run(init)
-  #saver.restore(sess, 'models/try.ckpt')
-  extract_images(sess)
+  #saver.restore(sess, 'models/{}/{}.ckpt'.format(eid, n_iters))
   record_loss(sess)
   for it in range(n_iters):
     # Train next batch
@@ -119,9 +119,11 @@ with tf.Session() as sess:
     # Shuffle data once for each epoch
     if it % int(n_iters/n_epochs)  == 0:
       train_dataset.shuffle()
-    
+  extract_images(sess)
   # Save the model
-  save_path = saver.save(sess, 'models/%s.ckpt' % eid)
+  if not os.path.exists('models/'+eid):
+    os.makedirs('models/'+eid)
+  save_path = saver.save(sess, 'models/%s/%s.ckpt' % (eid, n_iters))
   print('Model saved in file: %s' % save_path)
 
 
