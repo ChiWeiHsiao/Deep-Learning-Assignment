@@ -2,8 +2,10 @@ from PIL import Image
 import matplotlib.pyplot as plt
 import json
 import numpy as np
+import os
 
-experiment_id = 'pool3-conv32-batch32-deconv-first'
+experiment_id = 'asym-duplicate-pool'
+directory = experiment_id
 filename = experiment_id
 jsonfile = 'statistics/'+filename+'.json'
 
@@ -15,8 +17,8 @@ with open(jsonfile, 'r') as f:
   reconstruct_image = log['reconstruct_image']
 
 
-def draw_img(img, layer_name):
-  filename = str(experiment_id) + '_' + layer_name + '.jpeg'
+def draw_img(img, name):
+  filename = directory + '/' + name + '.jpeg'
   # Transform to np array
   img = np.array(img)
   if img.shape[0] == 1:
@@ -43,7 +45,8 @@ def draw_img(img, layer_name):
 
 
 # Show Learning Curve
-def plot_loss(figure, title):
+def plot_loss(filename, title):
+  filename = directory + '/' + filename
   # Find out border
   left = 0
   right = len(train_loss)
@@ -52,7 +55,7 @@ def plot_loss(figure, title):
   # Build x axis
   x_axis = [100*i for i in range(0, len(train_loss))] 
 
-  plt.figure(figure)
+  plt.figure(filename)
   plt.title(title)
   plt.plot(x_axis, train_loss, label='train')
   plt.plot(x_axis, test_loss, label='test')
@@ -61,13 +64,14 @@ def plot_loss(figure, title):
   plt.legend()
   plt.text(right/2, top-top/6, 'Final Train loss = {:.2f}'.format(train_loss[-1]), fontsize=10, color='green')
   plt.text(right/2, top-top/4.5,  'Final Test loss  = {:.2f}'.format(test_loss[-1]), fontsize=10, color='green')
-  plt.savefig(figure+'.png')
+  plt.savefig(filename+'.png')
 
 
 if __name__ == '__main__':
-  loss_filename = str(experiment_id)+'_loss'
-  plot_loss(loss_filename, 'learning curve')
+  if not os.path.exists(directory):
+    os.makedirs(directory)
+  plot_loss('loss', 'learning curve')
   for i in range(len(original_image)):
-    draw_img(original_image[i], 'original_image_{}'.format(i))
-    draw_img(reconstruct_image[i], 'reconstruct_image_{}'.format(i))
+    draw_img(original_image[i], '{}_original'.format(i))
+    draw_img(reconstruct_image[i], '{}_reconstruct'.format(i))
   
