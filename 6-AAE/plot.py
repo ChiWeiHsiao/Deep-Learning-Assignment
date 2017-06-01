@@ -17,7 +17,7 @@ with open(jsonfile, 'r') as f:
 def draw_img(img, name):
     filename = directory + '/' + name + '.jpeg'
     # Resize
-    img = np.array(img)
+    #img = np.array(img)
     img_size = int(np.sqrt(img.shape[0]))
     img = np.reshape(img, [img_size, img_size])
     plt.imshow(img, cmap='gray', vmin=0, vmax=1)
