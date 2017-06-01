@@ -4,7 +4,7 @@ import json
 from util import Dataset, load_data
 from random import randint
 
-eid = 'duplicate-pool'
+eid = 'try'
 n_epochs = 5
 batch_size = 32
 show_steps = 100
@@ -12,7 +12,6 @@ adam_learning_rate = 0.001
 log = {
     'experiment_id': eid,
     'train_loss': [],
-    'encoded_data': [],
 }
 logfile = 'statistics/'+eid+'.json'
 print('id: ', eid)
@@ -21,11 +20,12 @@ print('number of epochs = {:d}'.format(n_epochs))
 
 # Load data
 X_train = load_data('../data/data.npy')  # (2000, 784)
-IMG_HEIGHT, IMG_WIDTH, IMG_CHANNEL = X_train.shape[1:4]
+label_train = load_data('../data/label.npy')  # (2000,)
+train_dataset = Dataset(X_train, label_train, batch_size)
 n_train_samples = X_train.shape[0]
+n_input = X_train.shape[1]
 n_iters = int(n_epochs * n_train_samples / batch_size)
 print('number of iterations = {:d}'.format(n_iters))
-train_dataset = Dataset(X_train, batch_size)
 
 
 def dense(x, n_out):
@@ -46,7 +46,7 @@ def discriminator(sample, encoded):
     sigmoid 
 
 # Graph input
-x = tf.placeholder('float', [None, IMG_HEIGHT, IMG_WIDTH, IMG_CHANNEL])
+x = tf.placeholder('float', [None, n_input])
 out = 
 
 # Define cost and optimizer
@@ -64,17 +64,22 @@ def calculate_loss_sum(sess, inputs):
     return loss
 
 def record_loss(sess):
-    train_loss = calculate_loss_sum(sess, X_train) / X_train.shape[0]
+    train_loss = calculate_loss_sum(sess, train_dataset.X) / train_dataset.X.shape[0]
     log['train_loss'].append(train_loss)
-    log['test_loss'].append(test_loss)
-    print('train_loss = %15.4f, test_loss = %15.4f'  %(train_loss, test_loss))
-    return
+    print('train_loss = %15.4f'  %(train_loss))
 
-
-def extract_encoded_data(sess):
-    feature_vector = sess.run(out, feed_dict={x: }).tolist()
-    log['encoded_data'].append(feature_vector)
+def extract_encoded_data(sess, outfile):
+    encoded_feature_vector = sess.run(out, feed_dict={x: train_dataset.X}).tolist()
+    label = train_dataset.Y
+    np.savez(outfile, feature_vector=encoded_feature_vector, label=label)
+    print('Encoded feature vector saved in: %s' %outfile)
     
+def extract_reconstruct_image(sess):
+  for i in range(0,10):
+    image = X_test[i]
+    image = np.reshape(image, (1, )+image.shape)
+    log['original_image'].append(image.tolist())
+    log['reconstruct_image'].append(sess.run(decoder, feed_dict={x: image}).tolist())
 
 saver = tf.train.Saver()
 # Launch the graph
@@ -82,11 +87,10 @@ with tf.Session() as sess:
     init = tf.global_variables_initializer()
     sess.run(init)
     #saver.restore(sess, 'models/try.ckpt')
-    extract_encoded_data(sess)
     record_loss(sess)
     for it in range(n_iters):
         # Train next batch
-        next_x = train_dataset.next_batch()
+        next_x, _ = train_dataset.next_batch()
         sess.run(train_step, feed_dict={x: next_x})
         if it % show_steps == 0:
             print('Iterations %4d:\t' %(it+1) , end="")
@@ -94,12 +98,14 @@ with tf.Session() as sess:
         # Shuffle data once for each epoch
         if it % int(n_iters/n_epochs)  == 0:
             train_dataset.shuffle()
-        
+    extract_encoded_data(sess, 'statistics/%s' %eid)
     # Save the model
-    save_path = saver.save(sess, 'models/%s.ckpt' % eid)
+    if not os.path.exists('models/'+eid):
+        os.makedirs('models/'+eid)
+    save_path = saver.save(sess, 'models/%s/%s.ckpt' % (eid, n_iters))
     print('Model saved in file: %s' % save_path)
 
 
-# Print weights and accuracy log to json file
 with open(logfile, 'w') as f:
     json.dump(log, f, indent=1)
+    print('Loss statistics saved in: %s' %logfile)
