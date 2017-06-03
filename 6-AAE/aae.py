@@ -81,6 +81,7 @@ bias = {
     
 def dense(x, W, b, activation):
     out = tf.add(tf.matmul(x, W), b)
+    out = tf.layers.batch_normalization(out)
     if activation == 'relu':
         out = tf.nn.relu(out)
     elif activation == 'lrelu':
