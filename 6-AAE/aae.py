@@ -5,21 +5,17 @@ from util import Dataset, load_data
 from random import randint
 import os
 
-eid = 'smallrate-e500-b100'
+eid = 'e500-b64-h1000-adam'
 n_epochs = 500
-batch_size = 100#500
+batch_size = 64#500
 show_steps = 1
-discriminator_learning_rate = 0.0001
-generator_learning_rate = 0.0001
-reconstruct_learning_rate = 0.001
 
 input_dim = 784
 latent_dim = 100
-hidden_dim = 512
+hidden_dim = 1000#512
 
 statistics = {
     'architechture': '3 layers, {}-{}-{}/{}'.format(hidden_dim, hidden_dim, latent_dim, input_dim),
-    'leaning_rate': 'Learning Rate, disc={:f}, gen={:f}, reconst={:f}'.format(discriminator_learning_rate,generator_learning_rate,reconstruct_learning_rate),
     'reconstruction_loss': [],
     'generator_loss': [],
     'discriminator_loss': [],
@@ -33,7 +29,6 @@ statistics_file = 'statistics/'+eid
 print('id: ', eid)
 print('number of epochs = {:d}'.format(n_epochs))
 print('batch_size = {:d}'.format(batch_size))
-print('Learning Rate, disc={:f}, gen={:f}, reconst={:f}'.format(discriminator_learning_rate,generator_learning_rate,reconstruct_learning_rate))
 
 # Load data
 X_train = load_data('../data/data.npy')  # (2000, 784)
@@ -126,14 +121,20 @@ reconstruct = decoder(code)
 discrim_prior = discriminator(prior_samples)
 discrim_code = discriminator(code)
 
-loss_discriminator = tf.negative(tf.reduce_mean(tf.log(discrim_prior+1e-9)) + tf.reduce_mean(tf.ones_like(discrim_code)-discrim_code+1e-9))
+loss_discriminator = tf.negative(tf.reduce_mean(tf.log(discrim_prior+1e-9)) + tf.reduce_mean(tf.log(1.0-discrim_code+1e-9)))
 loss_encoder = tf.reduce_mean(tf.log(1.0-discrim_code+1e-9))
 loss_reconstruct = tf.reduce_sum(tf.abs(x - reconstruct))
 
-
-train_discriminator = tf.train.AdamOptimizer(discriminator_learning_rate).minimize(loss_discriminator)
-train_generator = tf.train.AdamOptimizer(generator_learning_rate).minimize(loss_encoder)
-train_reconstruct = tf.train.AdamOptimizer(reconstruct_learning_rate).minimize(loss_reconstruct)
+#decay_step = int(50 * n_train_samples / batch_size)
+#discriminator_learning_rate = tf.train.piecewise_constant(0, [decay_step], [0.1, 0.01])
+#generator_learning_rate = tf.train.piecewise_constant(0, [decay_step], [0.1, 0.01])
+#reconstruct_learning_rate = tf.train.piecewise_constant(0, [decay_step], [0.01, 0.001])
+#train_discriminator = tf.train.MomentumOptimizer(discriminator_learning_rate, 0.1).minimize(loss_discriminator)
+#train_generator = tf.train.MomentumOptimizer(generator_learning_rate, 0.1).minimize(loss_encoder)
+#train_reconstruct = tf.train.MomentumOptimizer(reconstruct_learning_ratei, 0.9).minimize(loss_reconstruct)
+train_discriminator = tf.train.AdamOptimizer(0.001).minimize(loss_discriminator)
+train_generator = tf.train.AdamOptimizer(0.001).minimize(loss_encoder)
+train_reconstruct = tf.train.AdamOptimizer(0.001).minimize(loss_reconstruct)
 
 # Reconstruct from random distribution with trained weights
 specified_code = tf.placeholder('float', [None, 100])
@@ -158,7 +159,7 @@ def record_loss(sess, X):
     statistics['reconstruction_loss'].append(reconstruction_loss)
     statistics['generator_loss'].append(generator_loss)
     statistics['discriminator_loss'].append(discriminator_loss)
-    print('Loss: reconstruction = {:.5f},  generator = {:.20f},  discriminator = {:.20f}'.format(reconstruction_loss, generator_loss, discriminator_loss))
+    print('Loss: reconstruction = {:.8f},  generator = {:.24f},  discriminator = {:.20f}'.format(reconstruction_loss, generator_loss, discriminator_loss))
 
 def extract_encoded_data(sess):
     iterations = int(train_dataset.X.shape[0] / batch_size)
@@ -192,7 +193,7 @@ with tf.Session() as sess:
     sess.run(init)
     #saver.restore(sess, 'models/%s/%s.ckpt' % (eid, 533))
     record_loss(sess, train_dataset.X)
-    k = 3
+    k = 1
     new_iters = int(n_iters/k)
     for it in range(new_iters):
         # Shuffle data once for each epoch
@@ -203,8 +204,8 @@ with tf.Session() as sess:
             next_x, _ = train_dataset.next_batch()
             draw_prior_samples = draw_multivariate_gaussian(latent_dim, batch_size)
             sess.run(train_discriminator, feed_dict={x: next_x, prior_samples: draw_prior_samples})
-            sess.run(train_reconstruct, feed_dict={x: next_x})
         sess.run(train_generator, feed_dict={x: next_x})
+        sess.run(train_reconstruct, feed_dict={x: next_x})
         # Show loss
         if it % show_steps == 0:
             print('Iterations %5d: ' %(it+1) , end='')
@@ -231,5 +232,5 @@ np.savez(statistics_file,
     original_images=statistics['original_images'], encoded_images=statistics['encoded_images'], reconstruct_images=statistics['reconstruct_images'],
     encoded_feature_vector=statistics['encoded_feature_vector'], label = train_dataset.Y,
     random_reconstruct_img=statistics['reconstruct_from_random'],
-    architechture=statistics['architechture'], leaning_rate=statistics['leaning_rate'])
+    architechture=statistics['architechture'])
 print('statistics file saved in: {}'.format(statistics_file))
