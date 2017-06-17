@@ -5,14 +5,14 @@ from util import Dataset, load_data
 from random import randint
 import os
 
-eid = 'e500-b64-h1000-adam'
-n_epochs = 500
-batch_size = 64#500
+eid = 'e100-b50-h512-adam'
+n_epochs = 100
+batch_size = 50
 show_steps = 1
 
 input_dim = 784
 latent_dim = 100
-hidden_dim = 1000#512
+hidden_dim = 512
 
 statistics = {
     'architechture': '3 layers, {}-{}-{}/{}'.format(hidden_dim, hidden_dim, latent_dim, input_dim),
@@ -125,16 +125,14 @@ loss_discriminator = tf.negative(tf.reduce_mean(tf.log(discrim_prior+1e-9)) + tf
 loss_encoder = tf.reduce_mean(tf.log(1.0-discrim_code+1e-9))
 loss_reconstruct = tf.reduce_sum(tf.abs(x - reconstruct))
 
-#decay_step = int(50 * n_train_samples / batch_size)
-#discriminator_learning_rate = tf.train.piecewise_constant(0, [decay_step], [0.1, 0.01])
-#generator_learning_rate = tf.train.piecewise_constant(0, [decay_step], [0.1, 0.01])
-#reconstruct_learning_rate = tf.train.piecewise_constant(0, [decay_step], [0.01, 0.001])
-#train_discriminator = tf.train.MomentumOptimizer(discriminator_learning_rate, 0.1).minimize(loss_discriminator)
-#train_generator = tf.train.MomentumOptimizer(generator_learning_rate, 0.1).minimize(loss_encoder)
-#train_reconstruct = tf.train.MomentumOptimizer(reconstruct_learning_ratei, 0.9).minimize(loss_reconstruct)
+decay_step = int(100 * n_train_samples / batch_size)
+discriminator_learning_rate = tf.train.piecewise_constant(0, [decay_step], [0.001, 0.0001])
+generator_learning_rate = tf.train.piecewise_constant(0, [decay_step], [0.001, 0.0001])
+reconstruct_learning_rate = tf.train.piecewise_constant(0, [decay_step], [0.001, 0.0001])
 train_discriminator = tf.train.AdamOptimizer(0.001).minimize(loss_discriminator)
 train_generator = tf.train.AdamOptimizer(0.001).minimize(loss_encoder)
 train_reconstruct = tf.train.AdamOptimizer(0.001).minimize(loss_reconstruct)
+#train_generator_and_reconstruct = tf.train.AdamOptimizer(0.001).minimize(loss_encoder+loss_reconstruct)
 
 # Reconstruct from random distribution with trained weights
 specified_code = tf.placeholder('float', [None, 100])
